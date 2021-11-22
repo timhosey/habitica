@@ -15,6 +15,12 @@ export const EVENTS = {
     season: 'normal',
     npcImageSuffix: '',
   },
+  winter2022Promo: { // test event
+    start: '2021-11-22T13:30-05:00',
+    end: '2021-11-30T20:00-05:00',
+    season: 'winter',
+    promo: 'g1g1',
+  },
   potions202111: {
     start: '2021-11-09T08:00-05:00',
     end: '2021-11-30T20:00-05:00',

@@ -1,6 +1,5 @@
-import nconf from 'nconf';
 import { authWithHeaders } from '../../middlewares/auth';
-import { convertVariableObjectToArray, sendTxn } from '../../libs/email';
+import { bugReportLogic } from '../../libs/bug-report';
 
 const api = {};
 
@@ -26,51 +25,21 @@ api.bugReport = {
   url: '/bug-report',
   middlewares: [authWithHeaders()],
   async handler (req, res) {
-    req.checkBody({
-      message: {
-        notEmpty: { errorMessage: res.t('emptyReportBugMessage') },
-      },
-      email: {
-        notEmpty: true,
-        errorMessage: res.t('missingEmail'),
-        isEmail: { errorMessage: res.t('notAnEmail') },
-      },
-    });
+    req.checkBody('message', res.t('emptyReportBugMessage')).notEmpty();
+    req.checkBody('email', res.t('missingEmail')).notEmpty();
+    req.checkBody('email', res.t('notAnEmail')).isEmail();
+
     const validationErrors = req.validationErrors();
     if (validationErrors) throw validationErrors;
 
     const { message, email } = req.body;
-
     const { user } = res.locals;
-
     const BROWSER_UA = req.get('User-Agent');
 
-    const emailData = {
-      USER_ID: user._id,
-      USER_EMAIL: email,
-      USER_USERNAME: user.auth.local.username,
-      USER_LEVEL: user.stats.lvl,
-      USER_CLASS: user.stats.class,
-      USER_DAILIES_PAUSED: user.preferences.sleep === 1 ? 'true' : 'false',
-      USER_COSTUME: user.preferences.costume === 1 ? 'true' : 'false',
-      USER_CUSTOM_DAY: user.preferences.dayStart,
-      USER_TIMEZONE_OFFSET: user.preferences.timezoneOffset,
-      USER_SUBSCRIPTION: user.purchased.plan.planId,
-      USER_PAYMENT_PLATFORM: user.purchased.plan.paymentMethod,
-      USER_CUSTOMER_ID: user.purchased.plan.customerId,
-      USER_CONSECUTIVE_MONTHS: user.purchased.plan.consecutive.count,
-      USER_OFFSET_MONTHS: user.purchased.plan.consecutive.offset,
-      USER_HOURGLASSES: user.purchased.plan.consecutive.trinkets,
-      REPORT_MSG: message,
-      BROWSER_UA,
-    };
-
-    const adminMail = { email: nconf.get('ADMIN_EMAIL') };
-
-    const sendMailResult = await sendTxn(
-      adminMail,
-      'report-a-bug',
-      convertVariableObjectToArray(emailData),
+    const {
+      emailData, sendMailResult,
+    } = bugReportLogic(
+      user, email, message, BROWSER_UA,
     );
 
     res.status(200).send({

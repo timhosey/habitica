@@ -121,7 +121,7 @@
     "choosePaymentMethod": "Choose your payment method",
     "buyGemsSupportsDevs": "Purchasing Gems supports the developers and helps keep Habitica running",
     "support": "SUPPORT",
-    "gemBenefitLeadin": "Gems allow you to buy fun extras for your account, including:",
+    "gemBenefitLeadin": "Gems allow you to buy fun extras for your account, including?",
     "gemBenefit1": "Unique and fashionable costumes for your avatar.",
     "gemBenefit2": "Backgrounds to immerse your avatar in the world of Habitica!",
     "gemBenefit3": "Exciting Quest chains that drop pet eggs.",
@@ -133,5 +133,8 @@
     "subscriptionBenefit6": "Earn Mystic Hourglasses for use in the Time Travelers' Shop!",
     "purchaseAll": "Purchase Set",
     "gemsRemaining": "gems remaining",
-    "notEnoughGemsToBuy": "You are unable to buy that amount of gems"
+    "notEnoughGemsToBuy": "You are unable to buy that amount of gems",
+    "viewSubscriptions": "Prehľad predplatných",
+    "howManyGemsPurchase": "Koľko drahokamov by ste chceli zakúpiť?",
+    "howManyGemsSend": "Koľko drahokamov by ste chceli odoslať?"
 }

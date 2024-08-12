@@ -1,10 +1,17 @@
 <template>
   <div class="notification-animation-holder">
-    <div class="notification-holder"
-         @click="handleOnClick()">
-      <div v-if="notification.type === 'drop'"
-           class="icon-item">
-        <div :class="notification.icon" class="icon-negative-margin"></div>
+    <div
+      class="notification-holder"
+      @click="handleOnClick()"
+    >
+      <div
+        v-if="notification.type === 'drop'"
+        class="icon-item"
+      >
+        <Sprite
+          :image-name="notification.icon"
+          class="icon-negative-margin"
+        />
       </div>
 
       <div
@@ -32,7 +39,10 @@
               class="svg-icon"
               v-html="icons.gold"
             ></div>
-            <div class="icon-text" v-html="notification.text"></div>
+            <div
+              class="icon-text"
+              v-html="notification.text"
+            ></div>
           </div>
         </div>
         <div
@@ -63,7 +73,10 @@
               class="svg-icon"
               v-html="icons.mana"
             ></div>
-            <div class="icon-text" v-html="notification.text"></div>
+            <div
+              class="icon-text"
+              v-html="notification.text"
+            ></div>
           </div>
         </div>
         <div
@@ -78,7 +91,10 @@
               class="svg-icon"
               v-html="icons.sword"
             ></div>
-            <div class="icon-text" v-html="notification.text"></div>
+            <div
+              class="icon-text"
+              v-html="notification.text"
+            ></div>
           </div>
         </div>
         <div
@@ -98,7 +114,6 @@
           </div>
         </div>
       </div>
-
     </div>
   </div>
 </template>
@@ -216,9 +231,13 @@ import star from '@/assets/svg/star.svg';
 import mana from '@/assets/svg/mana.svg';
 import sword from '@/assets/svg/sword.svg';
 import CloseIcon from '../shared/closeIcon';
+import Sprite from '@/components/ui/sprite';
 
 export default {
-  components: { CloseIcon },
+  components: {
+    CloseIcon,
+    Sprite,
+  },
   props: ['notification', 'visibleAmount'],
   data () {
     return {
@@ -254,6 +273,11 @@ export default {
     classes () {
       return `${this.notification.type} ${this.negative}`;
     },
+  },
+  mounted () {
+    if (this.notification.type === 'drop' && this.notification.emptied) {
+      this.$root.$emit('bv::show::modal', 'armoire-empty');
+    }
   },
   methods: {
     handleOnClick () {

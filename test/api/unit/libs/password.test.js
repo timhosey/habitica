@@ -227,7 +227,7 @@ describe('Password Utilities', () => {
         expiresAt: moment().subtract({ minutes: 1 }),
       }));
 
-      await user.update({
+      await user.updateOne({
         'auth.local.passwordResetCode': code,
       });
 
@@ -246,7 +246,7 @@ describe('Password Utilities', () => {
     it('returns false if the user has no local auth', async () => {
       const user = await generateUser({
         auth: {
-          facebook: {},
+          google: {},
         },
       });
       const res = await validatePasswordResetCodeAndFindUser(encrypt(JSON.stringify({
@@ -264,7 +264,7 @@ describe('Password Utilities', () => {
         expiresAt: moment().add({ days: 1 }),
       }));
 
-      await user.update({
+      await user.updateOne({
         'auth.local.passwordResetCode': 'invalid',
       });
 
@@ -280,7 +280,7 @@ describe('Password Utilities', () => {
         expiresAt: moment().add({ days: 1 }),
       }));
 
-      await user.update({
+      await user.updateOne({
         'auth.local.passwordResetCode': code,
       });
 

@@ -14,9 +14,11 @@ export default {
   guildsOnlyPaginate: 'Only public guilds support pagination.',
   guildsPaginateBooleanString: 'req.query.paginate must be a boolean string.',
   groupIdRequired: 'req.params.groupId must contain a groupId.',
+  groupWithIDNotFound: 'Group with id "<%= groupId %>" not found.',
   groupRemainOrLeaveChallenges: 'req.query.keep must be either "remain-in-challenges" or "leave-challenges"',
   managerIdRequired: 'req.body.managerId must contain a User ID.',
-  noSudoAccess: 'You don\'t have sudo access.',
+  noPrivAccess: 'You don\'t have the required privileges.',
+  notPartyLeader: 'You are not the leader of a Party.',
 
   eventRequired: '"req.params.event" is required.',
   countRequired: '"req.query.count" is required.',
@@ -38,4 +40,5 @@ export default {
   directionUpDown: '"direction" is required and must be "up" or "down".',
   invalidTaskIdentifier: 'A task is identified by its UUID or alias.',
   invalidTaskScorings: 'This API route expects a body in the form of [{id, direction}].',
+  summaryLengthExceedsMax: 'Summary length is too high.',
 };

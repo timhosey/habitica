@@ -2,8 +2,12 @@ import { authWithHeaders } from '../../middlewares/auth';
 import * as userLib from '../../libs/user';
 import { verifyDisplayName } from '../../libs/user/validation';
 import common from '../../../common';
+import { TransactionModel as Transaction } from '../../models/transaction';
+import { BadRequest, NotAuthorized } from '../../libs/errors';
+import * as passwordUtils from '../../libs/password';
 
 const api = {};
+const RESET_CONFIRMATION = 'RESET';
 
 /*
 * NOTE most user routes are still in the v3 controller
@@ -59,7 +63,7 @@ const api = {};
  *   }
  * }
  *
-*/
+ */
 api.getUser = {
   method: 'GET',
   middlewares: [authWithHeaders()],
@@ -192,6 +196,8 @@ api.userReroll = {
  * @apiName UserReset
  * @apiGroup User
  *
+ * @apiParam (Body) {String} password The user's password
+ *
  * @apiSuccess {Object} data.user
  * @apiSuccess {Array} data.tasksToRemove IDs of removed tasks
  * @apiSuccess {String} message Success message
@@ -213,6 +219,22 @@ api.userReset = {
   middlewares: [authWithHeaders()],
   url: '/user/reset',
   async handler (req, res) {
+    const { user } = res.locals;
+    const { password } = req.body;
+    if (!password) {
+      throw new BadRequest(res.t('missingPassword'));
+    }
+
+    if (user.auth.local.hashed_password && user.auth.local.email) {
+      const isValidPassword = await passwordUtils.compare(user, password);
+      if (!isValidPassword) throw new NotAuthorized(res.t('wrongPassword'));
+    } else if (
+      (user.auth.facebook.id || user.auth.google.id || user.auth.apple.id)
+      && password !== RESET_CONFIRMATION
+    ) {
+      throw new NotAuthorized(res.t('incorrectResetPhrase', { magicWord: RESET_CONFIRMATION }));
+    }
+
     await userLib.reset(req, res, { isV3: false });
   },
 };
@@ -276,6 +298,23 @@ api.unequip = {
     const equipRes = common.ops.unEquipByType(user, req);
     await user.save();
     res.respond(200, ...equipRes);
+  },
+};
+
+/**
+ * @api {get} /api/v4/user/purchase-history Get users purchase history
+ * @apiName UserGetPurchaseHistory
+ * @apiGroup User
+ *
+ */
+api.purchaseHistory = {
+  method: 'GET',
+  middlewares: [authWithHeaders()],
+  url: '/user/purchase-history',
+  async handler (req, res) {
+    const { user } = res.locals;
+    const transactions = await Transaction.find({ userId: user._id }).sort({ createdAt: -1 });
+    res.respond(200, transactions);
   },
 };
 

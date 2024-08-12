@@ -221,7 +221,8 @@ describe('Task Model', () => {
 
       it('returns task by alias', async () => {
         const foundTasks = await Tasks.Task.findMultipleByIdOrAlias(
-          [taskWithAlias.alias], user._id,
+          [taskWithAlias.alias],
+          user._id,
         );
 
         expect(foundTasks[0].text).to.eql(taskWithAlias.text);
@@ -229,7 +230,8 @@ describe('Task Model', () => {
 
       it('returns multiple tasks', async () => {
         const foundTasks = await Tasks.Task.findMultipleByIdOrAlias(
-          [taskWithAlias.alias, secondTask._id], user._id,
+          [taskWithAlias.alias, secondTask._id],
+          user._id,
         );
 
         expect(foundTasks.length).to.eql(2);
@@ -239,20 +241,31 @@ describe('Task Model', () => {
 
       it('returns a task only once if searched by both id and alias', async () => {
         const foundTasks = await Tasks.Task.findMultipleByIdOrAlias(
-          [taskWithAlias.alias, taskWithAlias._id], user._id,
+          [taskWithAlias.alias, taskWithAlias._id],
+          user._id,
         );
 
         expect(foundTasks.length).to.eql(1);
         expect(foundTasks[0].text).to.eql(taskWithAlias.text);
       });
 
-      it('scopes alias lookup to user', async () => {
+      it('scopes alias lookup to user when querying aliases only', async () => {
         await Tasks.Task.findMultipleByIdOrAlias([taskWithAlias.alias], user._id);
 
         expect(Tasks.Task.find).to.be.calledOnce;
         expect(Tasks.Task.find).to.be.calledWithMatch({
+          alias: { $in: [taskWithAlias.alias] },
+          userId: user._id,
+        });
+      });
+
+      it('scopes alias lookup to user when querying aliases and IDs', async () => {
+        await Tasks.Task.findMultipleByIdOrAlias([taskWithAlias.alias, secondTask._id], user._id);
+
+        expect(Tasks.Task.find).to.be.calledOnce;
+        expect(Tasks.Task.find).to.be.calledWithMatch({
           $or: [
-            { _id: { $in: [] } },
+            { _id: { $in: [secondTask._id] } },
             { alias: { $in: [taskWithAlias.alias] } },
           ],
           userId: user._id,
@@ -270,10 +283,7 @@ describe('Task Model', () => {
 
         expect(Tasks.Task.find).to.be.calledOnce;
         expect(Tasks.Task.find).to.be.calledWithMatch({
-          $or: [
-            { _id: { $in: [] } },
-            { alias: { $in: [taskWithAlias.alias] } },
-          ],
+          alias: { $in: [taskWithAlias.alias] },
           userId: user._id,
           foo: 'bar',
         });

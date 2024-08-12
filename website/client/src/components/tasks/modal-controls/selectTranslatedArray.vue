@@ -9,9 +9,11 @@
       :right="right"
       :hide-icon="false"
       :inline-dropdown="inlineDropdown"
+      :placeholder="placeholder"
+      :direct-select="true"
       @select="selectItem($event)"
     >
-      <template v-slot:item="{ item }">
+      <template #item="{ item }">
         <span class="label">{{ $t(item) }}</span>
       </template>
     </select-list>
@@ -69,6 +71,9 @@ export default {
     inlineDropdown: {
       type: Boolean,
       default: true,
+    },
+    placeholder: {
+      type: String,
     },
   },
   data () {

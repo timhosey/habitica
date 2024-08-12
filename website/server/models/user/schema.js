@@ -13,7 +13,7 @@ import { schema as WebhookSchema } from '../webhook';
 const RESTRICTED_EMAIL_DOMAINS = Object.freeze(['habitica.com', 'habitrpg.com']);
 
 // User schema definition
-export default new Schema({
+export const UserSchema = new Schema({
   apiToken: {
     $type: String,
     default: shared.uuid,
@@ -68,7 +68,7 @@ export default new Schema({
   },
   // We want to know *every* time an object updates.
   // Mongoose uses __v to designate when an object contains arrays which
-  // have been updated (http://goo.gl/gQLz41), but we want *every* update
+  // have been updated, but we want *every* update
   _v: { $type: Number, default: 0 },
   migration: String,
   achievements: {
@@ -147,12 +147,26 @@ export default new Schema({
     domesticated: Boolean,
     shadyCustomer: Boolean,
     shadeOfItAll: Boolean,
+    zodiacZookeeper: Boolean,
+    birdsOfAFeather: Boolean,
+    reptacularRumble: Boolean,
+    woodlandWizard: Boolean,
+    boneToPick: Boolean,
+    polarPro: Boolean,
+    plantParent: Boolean,
+    dinosaurDynasty: Boolean,
+    bonelessBoss: Boolean,
+    duneBuddy: Boolean,
+    roughRider: Boolean,
+    rodentRuler: Boolean,
+    cats: Boolean,
     // Onboarding Guide
     createdTask: Boolean,
     completedTask: Boolean,
     hatchedPet: Boolean,
     fedPet: Boolean,
     purchasedEquipment: Boolean,
+    groupsBeta2022: Boolean,
   },
 
   backer: {
@@ -169,8 +183,6 @@ export default new Schema({
       max: 9,
     },
     admin: Boolean,
-    newsPoster: Boolean,
-    sudo: Boolean,
     // Artisan, Friend, Blacksmith, etc
     text: String,
     // a markdown textarea to list their contributions + links
@@ -178,7 +190,14 @@ export default new Schema({
     // user can own Critical Hammer of Bug-Crushing if this has a truthy value
     critical: String,
   },
-
+  permissions: {
+    fullAccess: Boolean, // esentially what was previously contributor.admin. Can do everything
+    news: Boolean,
+    userSupport: Boolean, // access User Support feature in Admin Panel
+    challengeAdmin: Boolean, // Can manage and administrate challenges
+    moderator: Boolean, // Can ban, flag users and manage social spaces
+    coupons: Boolean, // Can generate and request coupons
+  },
   balance: { $type: Number, default: 0 },
 
   purchased: {
@@ -226,6 +245,7 @@ export default new Schema({
       mounts: { $type: Number, default: -1 },
       hall: { $type: Number, default: -1 },
       equipment: { $type: Number, default: -1 },
+      groupPlans: { $type: Number, default: -1 },
     },
     tutorial: {
       common: {
@@ -292,6 +312,7 @@ export default new Schema({
     cardReceived: { $type: Boolean, default: false },
     warnedLowHealth: { $type: Boolean, default: false },
     verifiedUsername: { $type: Boolean, default: false },
+    thirdPartyTools: { $type: Date },
   },
 
   history: {
@@ -362,7 +383,7 @@ export default new Schema({
       $type: Schema.Types.Mixed,
       default: () => ({}),
     },
-    currentPet: String, // Cactus-Desert
+    currentPet: { $type: String, default: '' }, // Cactus-Desert
 
     // eggs: {
     //  'PandaCub': 0, // 0 indicates "doesn't own"
@@ -400,7 +421,7 @@ export default new Schema({
       $type: Schema.Types.Mixed,
       default: () => ({}),
     },
-    currentMount: String,
+    currentMount: { $type: String, default: '' }, // Cactus-Desert
 
     // Quests: {
     //  'boss_0': 0, // 0 indicates "doesn't own"
@@ -419,6 +440,8 @@ export default new Schema({
 
   lastCron: { $type: Date, default: Date.now },
   _cronSignature: { $type: String, default: 'NOT_RUNNING' }, // Private property used to avoid double cron
+  // Lock property to avoid double subscription. Not strictly private because we query on it
+  _subSignature: { $type: String, default: 'NOT_RUNNING' },
 
   // {GROUP_ID: Boolean}, represents whether they have unseen chat messages
   newMessages: {
@@ -432,7 +455,7 @@ export default new Schema({
     // Using an array without validation because otherwise mongoose
     // treat this as a subdocument and applies _id by default
     // Schema is (id, name, inviter, publicGuild)
-    // TODO one way to fix is http://mongoosejs.com/docs/guide.html#_id
+    // TODO one way to fix is https://mongoosejs.com/docs/guide.html#_id
     guilds: { $type: Array, default: () => [] },
     // Using a Mixed type because otherwise user.invitations.party = {}
     // to reset invitation, causes validation to fail TODO
@@ -457,6 +480,9 @@ export default new Schema({
         ref: 'User',
         required: true,
         validate: [v => validator.isUUID(v), 'Invalid uuid for user invitation inviter id.'],
+      },
+      cancelledPlan: {
+        $type: Boolean,
       },
     }],
   },
@@ -485,6 +511,7 @@ export default new Schema({
       // invite is accepted or rejected, quest starts, or quest is cancelled
       RSVPNeeded: { $type: Boolean, default: false },
     },
+    seeking: Date,
   },
   preferences: {
     dayStart: {
@@ -510,17 +537,21 @@ export default new Schema({
     automaticAllocation: Boolean,
     allocationMode: { $type: String, enum: ['flat', 'classbased', 'taskbased'], default: 'flat' },
     autoEquip: { $type: Boolean, default: true },
-    costume: Boolean,
+    costume: { $type: Boolean, default: false },
     dateFormat: { $type: String, enum: ['MM/dd/yyyy', 'dd/MM/yyyy', 'yyyy/MM/dd'], default: 'MM/dd/yyyy' },
     sleep: { $type: Boolean, default: false },
     stickyHeader: { $type: Boolean, default: true },
     disableClasses: { $type: Boolean, default: false },
     newTaskEdit: { $type: Boolean, default: false },
+    // not used anymore, now the current filter is saved in preferences.activeFilter
     dailyDueDefaultView: { $type: Boolean, default: false },
+    // deprecated, unused
     advancedCollapsed: { $type: Boolean, default: false },
     toolbarCollapsed: { $type: Boolean, default: false },
     reverseChatOrder: { $type: Boolean, default: false },
+    developerMode: { $type: Boolean, default: false },
     background: String,
+    // deprecated, unused
     displayInviteToPartyWhenPartyIs1: { $type: Boolean, default: true },
     webhooks: {
       $type: Schema.Types.Mixed,
@@ -547,6 +578,7 @@ export default new Schema({
       onboarding: { $type: Boolean, default: true },
       majorUpdates: { $type: Boolean, default: true },
       subscriptionReminders: { $type: Boolean, default: true },
+      contentRelease: { $type: Boolean, default: true },
     },
     pushNotifications: {
       unsubscribeFromAll: { $type: Boolean, default: false },
@@ -563,6 +595,7 @@ export default new Schema({
       mentionJoinedGuild: { $type: Boolean, default: true },
       mentionUnjoinedGuild: { $type: Boolean, default: true },
       partyActivity: { $type: Boolean, default: true },
+      contentRelease: { $type: Boolean, default: true },
     },
     suppressModals: {
       levelUp: { $type: Boolean, default: false },
@@ -573,6 +606,15 @@ export default new Schema({
     tasks: {
       groupByChallenge: { $type: Boolean, default: false }, // @TODO remove? not used
       confirmScoreNotes: { $type: Boolean, default: false }, // @TODO remove? not used
+      mirrorGroupTasks: [
+        { $type: String, validate: [v => validator.isUUID(v), 'Invalid group UUID.'], ref: 'Group' },
+      ],
+      activeFilter: {
+        habit: { $type: String, default: 'all' },
+        daily: { $type: String, default: 'all' },
+        todo: { $type: String, default: 'remaining' },
+        reward: { $type: String, default: 'all' },
+      },
     },
     improvementCategories: {
       $type: Array,
@@ -592,12 +634,13 @@ export default new Schema({
       required: true,
       trim: true,
     },
+    flags: { $type: Schema.Types.Mixed },
   },
   stats: {
     hp: { $type: Number, default: shared.maxHealth },
-    mp: { $type: Number, default: 10 },
+    mp: { $type: Number, default: 10, min: 0 },
     exp: { $type: Number, default: 0 },
-    gp: { $type: Number, default: 0 },
+    gp: { $type: Number, default: 0, min: 0 },
     lvl: {
       $type: Number,
       default: 1,
@@ -607,19 +650,19 @@ export default new Schema({
 
     // Class System
     class: {
-      $type: String, enum: ['warrior', 'rogue', 'wizard', 'healer'], default: 'warrior', required: true,
+      $type: String, enum: shared.content.classes, default: 'warrior', required: true,
     },
-    points: { $type: Number, default: 0 },
-    str: { $type: Number, default: 0 },
-    con: { $type: Number, default: 0 },
-    int: { $type: Number, default: 0 },
-    per: { $type: Number, default: 0 },
+    points: { $type: Number, default: 0, min: 0 },
+    str: { $type: Number, default: 0, min: 0 },
+    con: { $type: Number, default: 0, min: 0 },
+    int: { $type: Number, default: 0, min: 0 },
+    per: { $type: Number, default: 0, min: 0 },
     buffs: {
-      str: { $type: Number, default: 0 },
-      int: { $type: Number, default: 0 },
-      per: { $type: Number, default: 0 },
-      con: { $type: Number, default: 0 },
-      stealth: { $type: Number, default: 0 },
+      str: { $type: Number, default: 0, min: 0 },
+      int: { $type: Number, default: 0, min: 0 },
+      per: { $type: Number, default: 0, min: 0 },
+      con: { $type: Number, default: 0, min: 0 },
+      stealth: { $type: Number, default: 0, min: 0 },
       streaks: { $type: Boolean, default: false },
       snowball: { $type: Boolean, default: false },
       spookySparkles: { $type: Boolean, default: false },
@@ -688,3 +731,5 @@ export default new Schema({
   minimize: false, // So empty objects are returned
   typeKey: '$type', // So that we can use fields named `type`
 });
+
+export default UserSchema; // fallback export until all imports using the Named one

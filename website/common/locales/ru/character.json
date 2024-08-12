@@ -170,8 +170,8 @@
     "photo": "Фото",
     "info": "Данные",
     "joined": "С нами",
-    "totalLogins": "Всего",
-    "latestCheckin": "Последнее посещение",
+    "totalLogins": "Всего входов",
+    "latestCheckin": "Последний вход",
     "editProfile": "Изменить профиль",
     "challengesWon": "Выигранные испытания",
     "questsCompleted": "Завершено квестов",
@@ -186,5 +186,8 @@
     "chatCastSpellParty": "<%= username %> накладывает заклинание «<%= spell %>» на команду.",
     "chatCastSpellUser": "<%= username %> накладывает заклинание «<%= spell %>» на <%= target %>.",
     "purchasePetItemConfirm": "Эта покупка превышает необходимое количество предметов для выведения всех возможных <%= itemText %> питомцев. Вы уверены?",
-    "notEnoughGold": "Недостаточно золота."
+    "notEnoughGold": "Недостаточно золота.",
+    "chatCastSpellPartyTimes": "<%= username %> бросает <%= spell %> для команды <%= times %> времени.",
+    "chatCastSpellUserTimes": "<%= username %> применяет <%= spell %> на <%= target %> <%= times %> раз.",
+    "nextReward": "Награда за следующий вход"
 }

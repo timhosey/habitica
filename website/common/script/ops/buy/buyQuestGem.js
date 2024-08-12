@@ -6,8 +6,9 @@ import {
 } from '../../libs/errors';
 import content from '../../content/index';
 
-import errorMessage from '../../libs/errorMessage';
+import { errorMessage } from '../../libs/errorMessage';
 import { AbstractGemItemOperation } from './abstractBuyOperation';
+import { getScheduleMatchingGroup } from '../../content/constants/schedule';
 
 export class BuyQuestWithGemOperation extends AbstractGemItemOperation { // eslint-disable-line import/prefer-default-export, max-len
   multiplePurchaseAllowed () { // eslint-disable-line class-methods-use-this
@@ -42,7 +43,41 @@ export class BuyQuestWithGemOperation extends AbstractGemItemOperation { // esli
     this.canUserPurchase(user, item);
   }
 
-  executeChanges (user, item, req) {
+  canUserPurchase (user, item) {
+    if (item && item.prereqQuests) {
+      for (const prereq of item.prereqQuests) {
+        if (!user.achievements.quests[prereq]) {
+          throw new NotAuthorized(this.i18n('mustComplete', { quest: prereq }));
+        }
+      }
+    }
+
+    let matchers = [];
+    if (item.category === 'hatchingPotion') {
+      matchers = [
+        getScheduleMatchingGroup('hatchingPotionQuests'),
+      ];
+    } else if (item.category === 'pet') {
+      matchers = [
+        getScheduleMatchingGroup('seasonalQuests'),
+        getScheduleMatchingGroup('petQuests'),
+      ];
+    }
+    let isAvailable = matchers.length === 0;
+    matchers.forEach(matcher => {
+      if (matcher.match(item.key)) {
+        isAvailable = true;
+      }
+    });
+
+    if (!isAvailable) {
+      throw new NotAuthorized(this.i18n('notAvailable', { key: item.key }));
+    }
+
+    super.canUserPurchase(user, item);
+  }
+
+  async executeChanges (user, item, req) {
     if (
       !user.items.quests[item.key]
       || user.items.quests[item.key] < 0
@@ -53,7 +88,7 @@ export class BuyQuestWithGemOperation extends AbstractGemItemOperation { // esli
     };
     if (user.markModified) user.markModified('items.quests');
 
-    this.subtractCurrency(user, item, this.quantity);
+    await this.subtractCurrency(user, item, this.quantity);
 
     return [
       user.items.quests,

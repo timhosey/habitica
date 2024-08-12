@@ -199,7 +199,7 @@
     "hatchingPotionAquatic": "水中の",
     "hatchingPotionEmber": "熾火の",
     "hatchingPotionThunderstorm": "雷雨の",
-    "hatchingPotionGhost": "お化けの",
+    "hatchingPotionGhost": "おばけの",
     "hatchingPotionRoyalPurple": "ロイヤルパープルの",
     "hatchingPotionHolly": "ヒイラギの",
     "hatchingPotionCupid": "キューピッドの",
@@ -370,5 +370,18 @@
     "hatchingPotionSunset": "サンセットの",
     "hatchingPotionMoonglow": "月光の",
     "hatchingPotionSolarSystem": "太陽系の",
-    "hatchingPotionOnyx": "オニキスの"
+    "hatchingPotionOnyx": "オニキスの",
+    "hatchingPotionVirtualPet": "ヴァーチャルペットの",
+    "hatchingPotionPorcelain": "白磁の",
+    "hatchingPotionTeaShop": "喫茶店",
+    "hatchingPotionPinkMarble": "ピンク大理石",
+    "hatchingPotionFungi": "菌類",
+    "hatchingPotionRoseGold": "ローズゴールド色の",
+    "questEggGiraffeText": "キリン",
+    "questEggChameleonMountText": "カメレオン",
+    "questEggGiraffeMountText": "キリン",
+    "questEggGiraffeAdjective": "そびえ立つ",
+    "questEggChameleonAdjective": "混沌とした",
+    "hatchingPotionKoi": "コイ",
+    "questEggChameleonText": "カメレオン"
 }

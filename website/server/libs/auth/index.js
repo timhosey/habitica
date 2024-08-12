@@ -12,7 +12,10 @@ import common from '../../../common';
 import logger from '../logger';
 import { decrypt } from '../encryption';
 import { model as Group } from '../../models/group';
-import { loginSocial } from './social';
+import {
+  loginSocial,
+  socialEmailToLocal,
+} from './social';
 import { loginRes } from './utils';
 import { verifyUsername } from '../user/validation';
 
@@ -97,8 +100,11 @@ async function registerLocal (req, res, { isV3 = false }) {
       errorMessage: res.t('missingPassword'),
       equals: { options: [req.body.confirmPassword], errorMessage: res.t('passwordConfirmationMatch') },
       isLength: {
-        options: { min: common.constants.MINIMUM_PASSWORD_LENGTH },
-        errorMessage: res.t('minPasswordLength'),
+        options: {
+          min: common.constants.MINIMUM_PASSWORD_LENGTH,
+          max: common.constants.MAXIMUM_PASSWORD_LENGTH,
+        },
+        errorMessage: res.t('passwordIssueLength'),
       },
     },
   });
@@ -128,12 +134,13 @@ async function registerLocal (req, res, { isV3 = false }) {
   }, { 'auth.local': 1 }).exec();
 
   if (user) {
-    if (email === user.auth.local.email) throw new NotAuthorized(res.t('emailTaken'));
-    // Check that the lowercase username isn't already used
     if (existingUser) {
+      if (email === user.auth.local.email && existingUser._id !== user._id) throw new NotAuthorized(res.t('emailTaken'));
       if (lowerCaseUsername === user.auth.local.lowerCaseUsername && existingUser._id !== user._id) throw new NotAuthorized(res.t('usernameTaken'));
     } else if (lowerCaseUsername === user.auth.local.lowerCaseUsername) {
       throw new NotAuthorized(res.t('usernameTaken'));
+    } else {
+      throw new NotAuthorized(res.t('emailTaken'));
     }
   }
 
@@ -157,13 +164,16 @@ async function registerLocal (req, res, { isV3 = false }) {
   };
 
   if (existingUser) {
-    const hasSocialAuth = common.constants.SUPPORTED_SOCIAL_NETWORKS.find(network => {
+    const networks = common.constants.SUPPORTED_SOCIAL_NETWORKS;
+    // need to insert FB here to allow users who only have FB auth to connect local auth.
+    networks.push({ key: 'facebook', name: 'Facebook' });
+    const hasSocialAuth = networks.find(network => {
       if (existingUser.auth.hasOwnProperty(network.key)) { // eslint-disable-line no-prototype-builtins, max-len
         return existingUser.auth[network.key].id;
       }
       return false;
     });
-    if (!hasSocialAuth) throw new NotAuthorized(res.t('onlySocialAttachLocal'));
+    if (!hasSocialAuth && existingUser.auth.local.hashed_password) throw new NotAuthorized(res.t('onlySocialAttachLocal'));
     existingUser.auth.local = newUser.auth.local;
     newUser = existingUser;
   } else {
@@ -195,7 +205,7 @@ async function registerLocal (req, res, { isV3 = false }) {
 
   // Clean previous email preferences and send welcome email
   EmailUnsubscription
-    .remove({ email: savedUser.auth.local.email })
+    .deleteOne({ email: savedUser.auth.local.email })
     .then(() => {
       if (existingUser) return;
       if (newUser.registeredThrough === 'habitica-web') {
@@ -226,4 +236,5 @@ export {
   hasLocalAuth,
   loginSocial,
   registerLocal,
+  socialEmailToLocal,
 };

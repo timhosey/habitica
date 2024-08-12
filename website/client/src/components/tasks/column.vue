@@ -43,7 +43,7 @@
       class="tasks-list"
     >
       <textarea
-        v-if="isUser"
+        v-if="isUser || canCreateTasks()"
         ref="quickAdd"
         v-model="quickAddText"
         class="quick-add"
@@ -102,6 +102,7 @@
           :group="group"
           :challenge="challenge"
           @editTask="editTask"
+          @taskSummary="taskSummary"
           @moveTo="moveTo"
           @taskDestroyed="taskDestroyed"
         />
@@ -347,18 +348,20 @@
 import throttle from 'lodash/throttle';
 import isEmpty from 'lodash/isEmpty';
 import draggable from 'vuedraggable';
+import { shouldDo } from '@/../../common/script/cron';
+import inAppRewards from '@/../../common/script/libs/inAppRewards';
+import taskDefaults from '@/../../common/script/libs/taskDefaults';
 import Task from './task';
 import ClearCompletedTodos from './clearCompletedTodos';
 import buyMixin from '@/mixins/buy';
+import sync from '@/mixins/sync';
+import externalLinks from '@/mixins/externalLinks';
 import { mapState, mapActions, mapGetters } from '@/libs/store';
 import shopItem from '../shops/shopItem';
 import BuyQuestModal from '@/components/shops/quests/buyQuestModal.vue';
 import PinBadge from '@/components/ui/pinBadge';
 
 import notifications from '@/mixins/notifications';
-import { shouldDo } from '@/../../common/script/cron';
-import inAppRewards from '@/../../common/script/libs/inAppRewards';
-import taskDefaults from '@/../../common/script/libs/taskDefaults';
 
 import {
   getTypeLabel,
@@ -382,7 +385,7 @@ export default {
     shopItem,
     draggable,
   },
-  mixins: [buyMixin, notifications],
+  mixins: [buyMixin, notifications, sync, externalLinks],
   // @TODO Set default values for props
   // allows for better control of props values
   // allows for better control of where this component is called
@@ -518,7 +521,12 @@ export default {
     // Get Category Filter Labels
     this.typeFilters = getFilterLabels(this.type, this.challenge);
     // Set default filter for task column
-    this.activateFilter(this.type);
+
+    if (this.challenge) {
+      this.activateFilter(this.type);
+    } else {
+      this.activateFilter(this.type, this.user.preferences.tasks.activeFilter[this.type], true);
+    }
   },
   mounted () {
     this.setColumnBackgroundVisibility();
@@ -532,6 +540,10 @@ export default {
       if (this.activeFilter.label !== 'complete2') return;
       this.loadCompletedTodos();
     });
+    this.handleExternalLinks();
+  },
+  updated () {
+    this.handleExternalLinks();
   },
   beforeDestroy () {
     this.$root.$off('buyModal::boughtItem');
@@ -542,6 +554,7 @@ export default {
     ...mapActions({
       loadCompletedTodos: 'tasks:fetchCompletedTodos',
       createTask: 'tasks:create',
+      createGroupTasks: 'tasks:createGroupTasks',
     }),
     async taskSorted (data) {
       const filteredList = this.taskList;
@@ -574,18 +587,25 @@ export default {
     },
     async moveTo (task, where) { // where is 'top' or 'bottom'
       const taskIdToMove = task._id;
-      const list = this.getUnfilteredTaskList(this.type);
+      const list = this.taskListOverride || this.getUnfilteredTaskList(this.type);
 
       const oldPosition = list.findIndex(t => t._id === taskIdToMove);
       const moved = list.splice(oldPosition, 1);
       const newPosition = where === 'top' ? 0 : list.length;
       list.splice(newPosition, 0, moved[0]);
 
-      const newOrder = await this.$store.dispatch('tasks:move', {
-        taskId: taskIdToMove,
-        position: newPosition,
-      });
-      this.user.tasksOrder[`${this.type}s`] = newOrder;
+      if (!this.isUser) {
+        await this.$store.dispatch('tasks:moveGroupTask', {
+          taskId: taskIdToMove,
+          position: newPosition,
+        });
+      } else {
+        const newOrder = await this.$store.dispatch('tasks:move', {
+          taskId: taskIdToMove,
+          position: newPosition,
+        });
+        this.user.tasksOrder[`${this.type}s`] = newOrder;
+      }
     },
     async rewardSorted (data) {
       const rewardsList = this.inAppRewards;
@@ -606,7 +626,12 @@ export default {
       this.showPopovers = true;
       this.isDragging(false);
     },
-    quickAdd (ev) {
+    canCreateTasks () {
+      if (!this.group) return false;
+      return (this.group.leader && this.group.leader._id === this.user._id)
+        || (this.group.managers && Boolean(this.group.managers[this.user._id]));
+    },
+    async quickAdd (ev) {
       // Add a new line if Shift+Enter Pressed
       if (ev.shiftKey) {
         this.quickAddRows += 1;
@@ -620,20 +645,28 @@ export default {
 
       const tasks = text.split('\n').reverse().filter(taskText => (!!taskText)).map(taskText => {
         const task = taskDefaults({ type: this.type, text: taskText }, this.user);
-        task.tags = this.selectedTags.slice();
+        if (this.isUser) task.tags = this.selectedTags.slice();
         return task;
       });
 
       this.quickAddText = '';
       this.quickAddRows = 1;
-      this.createTask(tasks);
+      if (this.group) {
+        await this.createGroupTasks({ groupId: this.group.id, tasks });
+        this.sync();
+      } else {
+        this.createTask(tasks);
+      }
       this.$refs.quickAdd.blur();
       return true;
     },
     editTask (task) {
       this.$emit('editTask', task);
     },
-    activateFilter (type, filter = '') {
+    taskSummary (task) {
+      this.$emit('taskSummary', task);
+    },
+    activateFilter (type, filter = '', skipSave = false) {
       // Needs a separate API call as this data may not reside in store
       if (type === 'todo' && filter === 'complete2') {
         if (this.group && this.group._id) {
@@ -651,22 +684,26 @@ export default {
       // loads and not on subsequent reloads.
       if (
         type === 'daily' && filter === '' && !this.challenge
-        && this.user.preferences.dailyDueDefaultView
       ) {
         filter = 'due'; // eslint-disable-line no-param-reassign
       }
 
       this.activeFilter = getActiveFilter(type, filter, this.challenge);
+
+      if (!skipSave && !this.challenge) {
+        const propertyToUpdate = `preferences.tasks.activeFilter.${type}`;
+        this.$store.dispatch('user:set', { [propertyToUpdate]: filter });
+      }
     },
     setColumnBackgroundVisibility () {
       this.$nextTick(() => {
-        if (!this.$refs.columnBackground || !this.$refs.tasksList) return;
+        if (!this.$refs.columnBackground) return;
 
         const tasksWrapperEl = this.$refs.tasksWrapper;
 
         const tasksWrapperHeight = tasksWrapperEl.offsetHeight;
         const quickAddHeight = this.$refs.quickAdd ? this.$refs.quickAdd.offsetHeight : 0;
-        const tasksListHeight = this.$refs.tasksList.$el.offsetHeight;
+        const tasksListHeight = this.$refs.tasksList ? this.$refs.tasksList.$el.offsetHeight : 0;
 
         let combinedTasksHeights = tasksListHeight + quickAddHeight;
 
@@ -687,7 +724,7 @@ export default {
     filterByLabel (taskList, type, filter) {
       if (!taskList) return [];
       const selectedFilter = getActiveFilter(type, filter, this.challenge);
-      return sortAndFilterTasks(taskList, selectedFilter);
+      return sortAndFilterTasks(taskList, selectedFilter, Boolean(this.group));
     },
     filterByTagList (taskList, tagList = []) {
       let filteredTaskList = taskList;

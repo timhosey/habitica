@@ -44,9 +44,9 @@
     "noFoodAvailable": "Du hast kein Futter.",
     "noSaddlesAvailable": "Du hast keinen Sattel.",
     "noFood": "Du hast im Moment weder Futter noch magische Sättel.",
-    "dropsExplanation": "Erhalte diese Gegenstände schneller mit Edelsteinen, wenn Du nicht warten möchtest, bis Du sie als Beute für erfüllte Aufgaben erhältst.\n<a href=\"https://habitica.fandom.com/de/wiki/Beute\">Erfahre mehr über das Beutesystem.</a>",
-    "dropsExplanationEggs": "Du kannst Edelsteine für Eier ausgeben, wenn Du nicht warten willst, bis Du ein Standard-Ei als Beute erhältst, oder wenn Du eine Haustier-Quest nicht wiederholen willst, um weitere Quest-Eier zu erhalten.\n<a href=\"https://habitica.fandom.com/de/wiki/Beute\">Erfahre mehr über das Beute-System.</a>",
-    "premiumPotionNoDropExplanation": "Magische Schlüpftränke können nicht auf Eier, die Du durch Quests erhalten hast, angewendet werden. Magische Schlüpftränke können nur gekauft und nicht durch zufällige Beute erworben werden.",
+    "dropsExplanation": "Erhalte diese Gegenstände schneller mit Edelsteinen, wenn Du nicht warten möchtest, bis Du sie als Beute für erfüllte Aufgaben erhältst. <a href=\"https://habitica.fandom.com/de/wiki/Beute\">Erfahre mehr über das Beutesystem.</a>",
+    "dropsExplanationEggs": "Du kannst Edelsteine für Eier ausgeben, wenn Du nicht warten willst, bis Du ein Standard-Ei als Beute erhältst, oder wenn Du eine Haustier-Quest nicht wiederholen willst, um weitere Quest-Eier zu erhalten. <a href=\"https://habitica.fandom.com/de/wiki/Beute\">Erfahre mehr über das Beute-System.</a>",
+    "premiumPotionNoDropExplanation": "Magische Schlüpfelixiere können nicht auf Eier, die Du durch Quests erhalten hast, angewendet werden. Magische Schlüpfelixiere können nur gekauft und nicht durch zufällige Beute erworben werden.",
     "beastMasterProgress": "\"Meister aller Bestien\" Fortschritt",
     "beastAchievement": "Du hast den Erfolg \"Meister aller Bestien\" dafür erhalten, dass Du alle Haustiere gesammelt hast!",
     "beastMasterName": "Meister aller Bestien",
@@ -113,5 +113,8 @@
     "gryphatrice": "Greifatrice",
     "tooMuchFood": "Du versuchst zu viel Futter an Dein Haustier zu verfüttern, Aktion abgebrochen",
     "notEnoughFood": "Du hast nicht genug Futter",
-    "invalidAmount": "Ungültige Menge Futter, positiver Integer benötigt"
+    "invalidAmount": "Ungültige Menge Futter, positiver Integer benötigt",
+    "jubilantGryphatrice": "Jubelnder Greifatrice",
+    "veteranDragon": "Veterandrache",
+    "veteranCactus": "Veterankaktus"
 }

@@ -53,11 +53,9 @@ describe('cron middleware', () => {
       cronMiddleware(req, res, err => {
         if (err) return reject(err);
 
-        Tasks.Task.findOne({ _id: task }, (secondErr, taskFound) => {
-          if (secondErr) return reject(err);
-          expect(secondErr).to.not.exist;
-          expect(taskFound).to.not.exist;
-          return resolve();
+        Tasks.Task.findOne({ _id: task }).then(foundTask => {
+          expect(foundTask).to.not.exist;
+          resolve();
         });
 
         return null;
@@ -78,10 +76,8 @@ describe('cron middleware', () => {
     await new Promise((resolve, reject) => {
       cronMiddleware(req, res, err => {
         if (err) return reject(err);
-        Tasks.Task.findOne({ _id: task }, (secondErr, taskFound) => {
-          if (secondErr) return reject(secondErr);
-          expect(secondErr).to.not.exist;
-          expect(taskFound).to.exist;
+        Tasks.Task.findOne({ _id: task }).then(foundTask => {
+          expect(foundTask).to.exist;
           return resolve();
         });
         return null;
@@ -103,10 +99,8 @@ describe('cron middleware', () => {
     await new Promise((resolve, reject) => {
       cronMiddleware(req, res, err => {
         if (err) return reject(err);
-        Tasks.Task.findOne({ _id: task }, (secondErr, taskFound) => {
-          if (secondErr) return reject(secondErr);
-          expect(secondErr).to.not.exist;
-          expect(taskFound).to.not.exist;
+        Tasks.Task.findOne({ _id: task }).then(foundTask => {
+          expect(foundTask).to.not.exist;
           return resolve();
         });
         return null;
@@ -123,6 +117,22 @@ describe('cron middleware', () => {
       cronMiddleware(req, res, err => {
         if (err) return reject(err);
         expect(hpBefore).to.equal(user.stats.hp);
+        return resolve();
+      });
+    });
+  });
+
+  it('runs cron if previous cron was incomplete', async () => {
+    user.lastCron = moment(new Date()).subtract({ days: 1 });
+    user.auth.timestamps.loggedin = moment(new Date()).subtract({ days: 4 });
+    const now = new Date();
+    await user.save();
+
+    await new Promise((resolve, reject) => {
+      cronMiddleware(req, res, err => {
+        if (err) return reject(err);
+        expect(moment(now).isSame(user.lastCron, 'day'));
+        expect(moment(now).isSame(user.auth.timestamps.loggedin, 'day'));
         return resolve();
       });
     });
@@ -154,8 +164,7 @@ describe('cron middleware', () => {
     await new Promise((resolve, reject) => {
       cronMiddleware(req, res, err => {
         if (err) return reject(err);
-        return User.findOne({ _id: user._id }, (secondErr, updatedUser) => {
-          if (secondErr) return reject(secondErr);
+        return User.findOne({ _id: user._id }).then(updatedUser => {
           expect(updatedUser.stats.hp).to.be.lessThan(hpBefore);
           return resolve();
         });
@@ -172,8 +181,7 @@ describe('cron middleware', () => {
     await new Promise((resolve, reject) => {
       cronMiddleware(req, res, err => {
         if (err) return reject(err);
-        return Tasks.Task.findOne({ _id: todo._id }, (secondErr, todoFound) => {
-          if (secondErr) return reject(secondErr);
+        return Tasks.Task.findOne({ _id: todo._id }).then(todoFound => {
           expect(todoFound.value).to.be.lessThan(todoValueBefore);
           return resolve();
         });
@@ -208,8 +216,7 @@ describe('cron middleware', () => {
     await new Promise((resolve, reject) => {
       cronMiddleware(req, res, err => {
         if (err) return reject(err);
-        return User.findOne({ _id: user._id }, (secondErr, updatedUser) => {
-          if (secondErr) return reject(secondErr);
+        return User.findOne({ _id: user._id }).then(updatedUser => {
           expect(updatedUser.stats.hp).to.be.lessThan(hpBefore);
           return resolve();
         });
@@ -222,11 +229,11 @@ describe('cron middleware', () => {
     await user.save();
 
     const updatedUser = user.toObject();
-    updatedUser.nMatched = 0;
+    updatedUser.matchedCount = 0;
 
     sandbox.spy(cronLib, 'recoverCron');
 
-    sandbox.stub(User, 'update')
+    sandbox.stub(User, 'updateOne')
       .withArgs({
         _id: user._id,
         $or: [
@@ -253,7 +260,7 @@ describe('cron middleware', () => {
   it('cronSignature less than an hour ago should error', async () => {
     user.lastCron = moment(new Date()).subtract({ days: 2 });
     const now = new Date();
-    await User.update({
+    await User.updateOne({
       _id: user._id,
     }, {
       $set: {
@@ -275,7 +282,7 @@ describe('cron middleware', () => {
   it('cronSignature longer than an hour ago should allow cron', async () => {
     user.lastCron = moment(new Date()).subtract({ days: 2 });
     const now = new Date();
-    await User.update({
+    await User.updateOne({
       _id: user._id,
     }, {
       $set: {
@@ -292,5 +299,34 @@ describe('cron middleware', () => {
         return resolve();
       });
     });
+  });
+
+  it('cron should not run more than once', async () => {
+    user.lastCron = moment(new Date()).subtract({ days: 2 });
+    await user.save();
+
+    sandbox.spy(cronLib, 'cron');
+
+    await Promise.all([new Promise((resolve, reject) => {
+      cronMiddleware(req, res, err => {
+        if (err) return reject(err);
+        return resolve();
+      });
+    }), new Promise((resolve, reject) => {
+      cronMiddleware(req, res, err => {
+        if (err) return reject(err);
+        return resolve();
+      });
+    }), new Promise((resolve, reject) => {
+      setTimeout(() => {
+        cronMiddleware(req, res, err => {
+          if (err) return reject(err);
+          return resolve();
+        });
+      }, 400);
+    }),
+    ]);
+
+    expect(cronLib.cron).to.be.calledOnce;
   });
 });

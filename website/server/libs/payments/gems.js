@@ -1,5 +1,6 @@
+import find from 'lodash/find';
 import { getAnalyticsServiceByEnvironment } from '../analyticsService';
-import { getCurrentEvent } from '../worldState'; // eslint-disable-line import/no-cycle
+import { getCurrentEventList } from '../worldState'; // eslint-disable-line import/no-cycle
 import { // eslint-disable-line import/no-cycle
   getUserInfo,
   sendTxn as txnEmail,
@@ -9,7 +10,7 @@ import shared from '../../../common';
 import {
   BadRequest,
 } from '../errors';
-import apiError from '../apiError';
+import { apiError } from '../apiError';
 
 const analytics = getAnalyticsServiceByEnvironment();
 
@@ -49,7 +50,7 @@ async function buyGemGift (data) {
     data.gift.member._id !== data.user._id
     && data.gift.member.preferences.pushNotifications.giftedGems !== false
   ) {
-    sendPushNotification(
+    await sendPushNotification(
       data.gift.member,
       {
         title: shared.i18n.t('giftedGems', languages[1]),
@@ -86,27 +87,28 @@ function getAmountForGems (data) {
 
   const { gemsBlock } = data;
 
-  const currentEvent = getCurrentEvent();
-  if (currentEvent && currentEvent.gemsPromo && currentEvent.gemsPromo[gemsBlock.key]) {
-    return currentEvent.gemsPromo[gemsBlock.key] / 4;
+  const currentEventsList = getCurrentEventList();
+  const promoEvent = find(currentEventsList, event => Boolean(event.gemsPromo));
+  if (promoEvent && promoEvent.gemsPromo[gemsBlock.key]) {
+    return promoEvent.gemsPromo[gemsBlock.key] / 4;
   }
 
   return gemsBlock.gems / 4;
 }
 
-function updateUserBalance (data, amount) {
+async function updateUserBalance (data, amount) {
   if (data.gift) {
-    data.gift.member.balance += amount;
+    await data.gift.member.updateBalance(amount, 'gift_receive', data.user._id, data.user.profile.name);
     return;
   }
 
-  data.user.balance += amount;
+  await data.user.updateBalance(amount, 'buy_money');
 }
 
 export async function buyGems (data) {
   const amt = getAmountForGems(data);
 
-  updateUserBalance(data, amt);
+  await updateUserBalance(data, amt);
   data.user.purchased.txnCount += 1;
 
   if (!data.gift) txnEmail(data.user, 'donation');

@@ -1,49 +1,48 @@
-import find from 'lodash/find';
 import upperFirst from 'lodash/upperFirst';
-import moment from 'moment';
 import {
-  EVENTS,
-  SEASONAL_SETS,
+  getCurrentGalaKey,
 } from '../content/constants';
+import {
+  armor,
+} from '../content/gear/sets/special';
 
-const CURRENT_EVENT = find(
-  EVENTS, event => moment().isBetween(event.start, event.end) && Boolean(event.season),
-);
-
-const SHOP_OPEN = CURRENT_EVENT && ['winter', 'spring', 'summer', 'fall'].includes(CURRENT_EVENT.season);
-
-export default {
-  opened: SHOP_OPEN,
-
-  currentSeason: SHOP_OPEN ? upperFirst(CURRENT_EVENT.season) : 'Closed',
-
-  dateRange: {
-    start: CURRENT_EVENT ? moment(CURRENT_EVENT.start) : moment().subtract(1, 'days').toDate(),
-    end: CURRENT_EVENT ? moment(CURRENT_EVENT.end) : moment().subtract(1, 'seconds').toDate(),
-  },
-
-  availableSets: SHOP_OPEN
-    ? [
-      ...SEASONAL_SETS[CURRENT_EVENT.season],
-    ]
-    : [],
-
-  pinnedSets: SHOP_OPEN
-    ? {
-      healer: 'winter2022IceCrystalHealerSet',
-      rogue: 'winter2022FireworksRogueSet',
-      warrior: 'winter2022StockingWarriorSet',
-      wizard: 'winter2022PomegranateMageSet',
+function safeGetSet (currentEvent, year, className) {
+  const set = armor[`${currentEvent}${year}${className}`];
+  if (set) {
+    return set.set;
+  }
+  let checkedYear = year - 1;
+  while (checkedYear >= 2014) {
+    const oldSet = armor[`${currentEvent}${checkedYear}${className}`];
+    if (oldSet) {
+      return oldSet.set;
     }
-    : {},
+    checkedYear -= 1;
+  }
+  return null;
+}
 
-  availableSpells: SHOP_OPEN && moment().isBetween('2021-12-30T08:00-04:00', CURRENT_EVENT.end)
-    ? [
-      'snowball',
-    ]
-    : [],
+function getCurrentSeasonalSets (currentEvent) {
+  const year = new Date().getFullYear();
+  return {
+    rogue: safeGetSet(currentEvent, year, 'Rogue'),
+    warrior: safeGetSet(currentEvent, year, 'Warrior'),
+    wizard: safeGetSet(currentEvent, year, 'Mage'),
+    healer: safeGetSet(currentEvent, year, 'Healer'),
+  };
+}
 
-  availableQuests: [],
-
-  featuredSet: 'winter2021ArcticExplorerHealerSet',
+export default () => {
+  const currentEvent = getCurrentGalaKey();
+  const pinnedSets = getCurrentSeasonalSets(currentEvent);
+  return {
+    currentSeason: currentEvent ? upperFirst(currentEvent) : 'Closed',
+    pinnedSets,
+    featuredSet: user => {
+      if (user.stats.class) {
+        return pinnedSets[user.stats.class];
+      }
+      return null;
+    },
+  };
 };

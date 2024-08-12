@@ -34,7 +34,7 @@ describe('PUT /user', () => {
       })).to.eventually.be.rejected.and.eql({
         code: 400,
         error: 'BadRequest',
-        message: 'mustBeArray',
+        message: 'Tag list must be an array.',
       });
     });
 
@@ -84,6 +84,7 @@ describe('PUT /user', () => {
       'gem balance': { balance: 100 },
       auth: { 'auth.blocked': true, 'auth.timestamps.created': new Date() },
       contributor: { 'contributor.level': 9, 'contributor.admin': true, 'contributor.text': 'some text' },
+      permissions: { 'permissions.fullAccess': true, 'permissions.news': true, 'permissions.moderator': 'some text' },
       backer: { 'backer.tier': 10, 'backer.npc': 'Bilbo' },
       subscriptions: { 'purchased.plan.extraMonths': 500, 'purchased.plan.consecutive.trinkets': 1000 },
       'customization gem purchases': { 'purchased.background.tavern': true, 'purchased.skin.bear': true },
@@ -146,7 +147,7 @@ describe('PUT /user', () => {
       it(`updates user with ${type} that is a default`, async () => {
         const dbUpdate = {};
         dbUpdate[`purchased.${type}.${item}`] = true;
-        await user.update(dbUpdate);
+        await user.updateOne(dbUpdate);
 
         // Sanity checks to make sure user is not already equipped with item
         expect(get(user.preferences, type)).to.not.eql(item);
@@ -168,7 +169,7 @@ describe('PUT /user', () => {
     });
 
     it('can set beard to default', async () => {
-      await user.update({
+      await user.updateOne({
         'purchased.hair.beard': 3,
         'preferences.hair.beard': 3,
       });
@@ -181,7 +182,7 @@ describe('PUT /user', () => {
     });
 
     it('can set mustache to default', async () => {
-      await user.update({
+      await user.updateOne({
         'purchased.hair.mustache': 2,
         'preferences.hair.mustache': 2,
       });
@@ -220,7 +221,7 @@ describe('PUT /user', () => {
       it(`updates user with ${type} user does own`, async () => {
         const dbUpdate = {};
         dbUpdate[`purchased.${type}.${item}`] = true;
-        await user.update(dbUpdate);
+        await user.updateOne(dbUpdate);
 
         // Sanity check to make sure user is not already equipped with item
         expect(get(user.preferences, type)).to.not.eql(item);

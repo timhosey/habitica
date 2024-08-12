@@ -202,5 +202,20 @@
     "finish": "Завершить",
     "congratulations": "Поздравляем!",
     "onboardingAchievs": "Достижения освоения",
-    "askQuestion": "Задать вопрос"
+    "askQuestion": "Задать вопрос",
+    "reportBugHeaderDescribe": "Пожалуйста, опишите проблему, с которой вы столкнулись, и наша команда свяжется с вами.",
+    "reportEmailText": "Это будет использовано только для того, чтобы связаться с вами по поводу сообщения об ошибке.",
+    "reportEmailPlaceholder": "Ваш email",
+    "reportEmailError": "Пожалуйста, укажите действительный email",
+    "reportDescription": "Описание",
+    "reportDescriptionPlaceholder": "Здесь опишите подробно ошибку",
+    "submitBugReport": "Отправить сообщение об ошибке",
+    "reportSent": "Сообщение отправлено!",
+    "reportDescriptionText": "Добавьте скриншоты или ошибки консоли Javascript, если они помогут.",
+    "reportSentDescription": "Мы свяжемся с вами, как только у нашей команды появится возможность разобраться в ситуации.",
+    "emptyReportBugMessage": "Отсутствует сообщение об ошибке",
+    "leaveHabitica": "Вы собираетесь покинуть Habitica.com",
+    "refreshList": "Обновить список",
+    "leaveHabiticaText": "Habitica не несет ответственности за содержание веб-сайтов, которые не принадлежат и не управляются HabitRPG.<br>Пожалуйста, обратите внимание, что правила работы этих веб-сайтов могут отличаться от принципов сообщества Habitica.",
+    "skipExternalLinkModal": "Удерживайте CTRL (Windows) или Command (Mac) при клике по ссылке, чтобы пропустить модальное окно."
 }

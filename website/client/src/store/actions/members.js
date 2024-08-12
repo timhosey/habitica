@@ -1,8 +1,5 @@
 import axios from 'axios';
 
-// import omit from 'lodash/omit';
-// import findIndex from 'lodash/findIndex';
-
 const apiv4Prefix = '/api/v4';
 
 export async function getGroupMembers (store, payload) {
@@ -113,37 +110,23 @@ export async function removeMember (store, payload) {
   return response;
 }
 
-// export async function selectMember (uid) {
-//   let memberIsReady = _checkIfMemberIsReady(members[uid]);
-//
-//   if (memberIsReady) {
-//     _prepareMember(members[uid], self);
-//     return
-//   } else {
-//     fetchMember(uid)
-//       .then(function (response) {
-//         var member = response.data.data;
-//         addToMembersList(member); // lazy load for later
-//         _prepareMember(member, self);
-//         deferred.resolve();
-//       });
-//   }
-// }
+export async function getPurchaseHistory (store, payload) {
+  const response = await axios.get(`${apiv4Prefix}/members/${payload.memberId}/purchase-history`);
+  return response.data.data;
+}
 
-// function addToMembersList (member) {
-//   if (member._id) {
-//     members[member._id] = member;
-//   }
-// }
+export async function reportMember (store, payload) {
+  const url = `${apiv4Prefix}/members/${payload.memberId}/flag`;
+  const data = {
+    comment: payload.comment,
+    source: payload.source,
+  };
+  const response = await axios.post(url, data);
+  return response;
+}
 
-// function _checkIfMemberIsReady (member) {
-//   return member && member.items && member.items.weapon;
-// }
-//
-// function _prepareMember(member, self) {
-//   self.selectedMember = members[member._id];
-// }
-//
-// $rootScope.$on('userUpdated', function(event, user){
-//   addToMembersList(user);
-// })
+export async function clearMemberFlags (store, payload) {
+  const url = `${apiv4Prefix}/members/${payload.memberId}/clear-flags`;
+  const response = await axios.post(url);
+  return response;
+}

@@ -1,8 +1,8 @@
 import _ from 'lodash';
 import { authWithHeaders } from '../../middlewares/auth';
-import apiError from '../../libs/apiError';
+import { apiError } from '../../libs/apiError';
 import { model as NewsPost } from '../../models/newsPost';
-import { ensureNewsPoster } from '../../middlewares/ensureAccessRight';
+import { ensurePermission } from '../../middlewares/ensureAccessRight';
 import {
   NotFound,
 } from '../../libs/errors';
@@ -70,7 +70,7 @@ api.getNews = {
 api.createNews = {
   method: 'POST',
   url: '/news',
-  middlewares: [authWithHeaders(), ensureNewsPoster],
+  middlewares: [authWithHeaders(), ensurePermission('news')],
   async handler (req, res) {
     const newsPost = new NewsPost(NewsPost.sanitize(req.body));
     newsPost.author = res.locals.user._id;
@@ -146,7 +146,7 @@ api.getPost = {
 api.updateNews = {
   method: 'PUT',
   url: '/news/:postId',
-  middlewares: [authWithHeaders(), ensureNewsPoster],
+  middlewares: [authWithHeaders(), ensurePermission('news')],
   async handler (req, res) {
     req.checkParams('postId', apiError('postIdRequired')).notEmpty().isUUID();
     const validationErrors = req.validationErrors();
@@ -181,7 +181,7 @@ api.updateNews = {
 api.deleteNews = {
   method: 'DELETE',
   url: '/news/:postId',
-  middlewares: [authWithHeaders(), ensureNewsPoster],
+  middlewares: [authWithHeaders(), ensurePermission('news')],
   async handler (req, res) {
     req.checkParams('postId', apiError('postIdRequired')).notEmpty().isUUID();
     const validationErrors = req.validationErrors();
@@ -190,7 +190,7 @@ api.deleteNews = {
     const newsPost = await NewsPost.findById(req.params.postId).exec();
     if (!newsPost) throw new NotFound(res.t('newsPostNotFound'));
 
-    await NewsPost.remove({ _id: req.params.postId }).exec();
+    await NewsPost.deleteOne({ _id: req.params.postId }).exec();
 
     res.respond(200, {});
   },

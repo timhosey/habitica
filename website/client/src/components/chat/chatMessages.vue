@@ -39,7 +39,7 @@
           v-if="user._id !== msg.uuid && msg.uuid !== 'system'"
           class="avatar-left"
           :class="{ invisible: avatarUnavailable(msg) }"
-          :member="msg.userStyles || cachedProfileData[msg.uuid]"
+          :member="msg.userStyles || cachedProfileData[msg.uuid] || {}"
           :avatar-only="true"
           :hide-class-badge="true"
           :override-top-padding="'14px'"
@@ -58,7 +58,7 @@
         <avatar
           v-if="user._id === msg.uuid"
           :class="{ invisible: avatarUnavailable(msg) }"
-          :member="msg.userStyles || cachedProfileData[msg.uuid]"
+          :member="msg.userStyles || cachedProfileData[msg.uuid] || {}"
           :avatar-only="true"
           :hide-class-badge="true"
           :override-top-padding="'14px'"
@@ -149,7 +149,7 @@ import moment from 'moment';
 import axios from 'axios';
 import debounce from 'lodash/debounce';
 import findIndex from 'lodash/findIndex';
-import { mapState } from '@/libs/store';
+import { userStateMixin } from '../../mixins/userState';
 
 import Avatar from '../avatar';
 import copyAsTodoModal from './copyAsTodoModal';
@@ -161,6 +161,7 @@ export default {
     chatCard,
     Avatar,
   },
+  mixins: [userStateMixin],
   props: {
     chat: {},
     groupType: {},
@@ -182,7 +183,6 @@ export default {
     };
   },
   computed: {
-    ...mapState({ user: 'user.data' }),
     // @TODO: We need a different lazy load mechnism.
     // But honestly, adding a paging route to chat would solve this
     messages () {
@@ -214,7 +214,7 @@ export default {
     canViewFlag (message) {
       if (message.uuid === this.user._id) return true;
       if (!message.flagCount || message.flagCount < 2) return true;
-      return this.user.contributor.admin;
+      return this.hasPermission(this.user, 'moderator');
     },
     loadProfileCache: debounce(function loadProfileCache (screenPosition) {
       this._loadProfileCache(screenPosition);

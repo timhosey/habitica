@@ -7,7 +7,7 @@ import {
 import content from '../../content/index';
 
 import { AbstractGoldItemOperation } from './abstractBuyOperation';
-import errorMessage from '../../libs/errorMessage';
+import { errorMessage } from '../../libs/errorMessage';
 
 export class BuyQuestWithGoldOperation extends AbstractGoldItemOperation { // eslint-disable-line import/prefer-default-export, max-len
   multiplePurchaseAllowed () { // eslint-disable-line class-methods-use-this
@@ -46,20 +46,22 @@ export class BuyQuestWithGoldOperation extends AbstractGoldItemOperation { // es
       throw new NotAuthorized(this.i18n('questNotGoldPurchasable', { key }));
     }
 
-    this.checkPrerequisites(user, key);
-
     this.canUserPurchase(user, item);
   }
 
-  checkPrerequisites (user, questKey) {
-    const item = content.quests[questKey];
-    if (questKey === 'lostMasterclasser1' && !this.userAbleToStartMasterClasser(user)) {
+  canUserPurchase (user, item) {
+    if (this.getItemKey() === 'lostMasterclasser1' && !this.userAbleToStartMasterClasser(user)) {
       throw new NotAuthorized(this.i18n('questUnlockLostMasterclasser'));
     }
 
-    if (item && item.previous && !user.achievements.quests[item.previous]) {
-      throw new NotAuthorized(this.i18n('mustComplete', { quest: item.previous }));
+    if (item && item.prereqQuests) {
+      for (const prereq of item.prereqQuests) {
+        if (!user.achievements.quests[prereq]) {
+          throw new NotAuthorized(this.i18n('mustComplete', { quest: prereq }));
+        }
+      }
     }
+    super.canUserPurchase(user, item);
   }
 
   executeChanges (user, item, req) {

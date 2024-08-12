@@ -1,3 +1,4 @@
+ <!-- THIS IS A VERY OLD FILE DO NOT USE -->
 <template>
   <div class="create-group-modal-pages">
     <div
@@ -120,6 +121,11 @@
   .form-group {
     text-align: left;
     font-weight: bold;
+  }
+
+  .custom-control-input {
+    z-index: -1;
+    opacity: 0;
   }
 
   .box:hover {

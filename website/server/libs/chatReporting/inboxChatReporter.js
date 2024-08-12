@@ -1,20 +1,15 @@
-import nconf from 'nconf';
 import { model as User } from '../../models/user';
 
 import ChatReporter from './chatReporter';
 import {
   BadRequest,
 } from '../errors';
-import { getUserInfo, sendTxn } from '../email';
+import { getUserInfo } from '../email';
 import * as slack from '../slack';
-import apiError from '../apiError';
+import { apiError } from '../apiError';
 
 import * as inboxLib from '../inbox';
 import { getAuthorEmailFromMessage } from '../chat';
-
-const FLAG_REPORT_EMAILS = nconf.get('FLAG_REPORT_EMAIL')
-  .split(',')
-  .map(email => ({ email, canSend: true }));
 
 export default class InboxChatReporter extends ChatReporter {
   constructor (req, res) {
@@ -30,7 +25,7 @@ export default class InboxChatReporter extends ChatReporter {
     const validationErrors = this.req.validationErrors();
     if (validationErrors) throw validationErrors;
 
-    if (this.user.contributor.admin && this.req.query.userId) {
+    if (this.user.hasPermission('moderator') && this.req.query.userId) {
       this.inboxUser = await User.findOne({ _id: this.req.query.userId }).exec();
     }
 
@@ -43,19 +38,6 @@ export default class InboxChatReporter extends ChatReporter {
   }
 
   async notify (message, userComment) {
-    const group = {
-      type: 'private messages',
-      name: 'N/A',
-      _id: 'N/A',
-    };
-
-    let emailVariables = await this.getMessageVariables(group, message);
-    emailVariables = emailVariables.concat([
-      { name: 'REPORTER_COMMENT', content: userComment || '' },
-    ]);
-
-    sendTxn(FLAG_REPORT_EMAILS, 'flag-report-to-mods-with-comments', emailVariables);
-
     slack.sendInboxFlagNotification({
       messageUserEmail: this.messageUserEmail,
       flagger: this.user,
@@ -103,7 +85,7 @@ export default class InboxChatReporter extends ChatReporter {
     // Log user ids that have flagged the message
     if (!message.flags) message.flags = {};
     // TODO fix error type
-    if (message.flags[this.user._id] && !this.user.contributor.admin) {
+    if (message.flags[this.user._id] && !this.user.hasPermission('moderator')) {
       throw new BadRequest(this.res.t('messageGroupChatFlagAlreadyReported'));
     }
 

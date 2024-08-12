@@ -1,5 +1,5 @@
 {
-    "stable": "馬廄",
+    "stable": "寵物與坐騎",
     "pets": "寵物",
     "activePet": "攜帶中的寵物",
     "noActivePet": "未攜帶的寵物",
@@ -113,5 +113,6 @@
     "gryphatrice": "獅鷲",
     "invalidAmount": "食物數量無效，必須為正整數",
     "tooMuchFood": "你正在餵寵物過多食物，行動已取消",
-    "notEnoughFood": "你沒有足夠的食物"
+    "notEnoughFood": "你沒有足夠的食物",
+    "jubilantGryphatrice": "節慶獅鷲"
 }

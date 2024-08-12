@@ -38,31 +38,10 @@
   }
 </style>
 
-<style>
-  .key_to_pets {
-    background-image: url('~@/assets/images/keys/key-to-the-pet-kennels.png');
-    width: 68px;
-    height: 68px;
-  }
-
-  .key_to_mounts {
-    background-image: url('~@/assets/images/keys/key-to-the-mount-kennels.png');
-    width: 68px;
-    height: 68px;
-  }
-
-  .key_to_both {
-    background-image: url('~@/assets/images/keys/keys-to-the-kennels.png');
-    width: 68px;
-    height: 68px;
-  }
-</style>
-
 <script>
+import { beastCount, mountMasterProgress } from '@/../../common/script/count';
 import { mapState } from '@/libs/store';
 import ShopItem from '../shopItem';
-
-import { beastCount, mountMasterProgress } from '@/../../common/script/count';
 
 import notifications from '@/mixins/notifications';
 
@@ -89,9 +68,6 @@ export default {
           try {
             this.$store.dispatch('shops:releasePets', { user: this.user });
             this.text(this.$t('releasePetsSuccess'));
-            // this.$router.push({name: 'stable'});
-            // Reload because achievement is set in user.save instead of common
-            window.location.reload(true);
           } catch (err) {
             window.alert(err.message); // eslint-disable-line no-alert
           }
@@ -112,9 +88,6 @@ export default {
           try {
             this.$store.dispatch('shops:releaseMounts', { user: this.user });
             this.text(this.$t('releaseMountsSuccess'));
-            // this.$router.push({name: 'stable'});
-            // Reload because achievement is set in user.save instead of common
-            window.location.reload(true);
           } catch (err) {
             window.alert(err.message); // eslint-disable-line no-alert
           }
@@ -135,9 +108,6 @@ export default {
           try {
             this.$store.dispatch('shops:releaseBoth', { user: this.user });
             this.text(this.$t('releaseBothSuccess'));
-            // this.$router.push({name: 'stable'});
-            // Reload because achievement is set in user.save instead of common
-            window.location.reload(true);
           } catch (err) {
             window.alert(err.message); // eslint-disable-line no-alert
           }

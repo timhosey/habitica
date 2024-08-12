@@ -25,6 +25,7 @@ describe('POST /groups/:groupId/removeMember/:memberId', () => {
       },
       invites: 1,
       members: 2,
+      upgradeToGroupPlan: true,
     });
 
     guild = group;
@@ -32,7 +33,7 @@ describe('POST /groups/:groupId/removeMember/:memberId', () => {
     invitedUser = invitees[0]; // eslint-disable-line prefer-destructuring
     member = members[0]; // eslint-disable-line prefer-destructuring
     member2 = members[1]; // eslint-disable-line prefer-destructuring
-    adminUser = await generateUser({ 'contributor.admin': true });
+    adminUser = await generateUser({ 'permissions.moderator': true });
   });
 
   context('All Groups', () => {
@@ -129,9 +130,11 @@ describe('POST /groups/:groupId/removeMember/:memberId', () => {
     it('sends email to removed user', async () => {
       await leader.post(`/groups/${guild._id}/removeMember/${member._id}`);
 
-      expect(email.sendTxn).to.be.calledOnce;
+      expect(email.sendTxn).to.be.calledTwice;
       expect(email.sendTxn.args[0][0]._id).to.eql(member._id);
       expect(email.sendTxn.args[0][1]).to.eql('kicked-from-guild');
+      expect(email.sendTxn.args[1][0]._id).to.eql(member._id);
+      expect(email.sendTxn.args[1][1]).to.eql('group-member-removed');
     });
   });
 
@@ -153,6 +156,7 @@ describe('POST /groups/:groupId/removeMember/:memberId', () => {
         },
         invites: 1,
         members: 2,
+        leaderDetails: { 'auth.timestamps.created': new Date('2022-01-01') },
       });
 
       party = group;
@@ -208,7 +212,7 @@ describe('POST /groups/:groupId/removeMember/:memberId', () => {
 
     it('removes user from quest when removing user from party after quest starts', async () => {
       const petQuest = 'whale';
-      await partyLeader.update({
+      await partyLeader.updateOne({
         [`items.quests.${petQuest}`]: 1,
       });
 
@@ -230,7 +234,7 @@ describe('POST /groups/:groupId/removeMember/:memberId', () => {
 
     it('removes user from quest when removing user from party before quest starts', async () => {
       const petQuest = 'whale';
-      await partyLeader.update({
+      await partyLeader.updateOne({
         [`items.quests.${petQuest}`]: 1,
       });
       await partyInvitedUser.post(`/groups/${party._id}/join`);
@@ -253,7 +257,7 @@ describe('POST /groups/:groupId/removeMember/:memberId', () => {
 
     it('prevents user from being removed if they are the quest owner', async () => {
       const petQuest = 'whale';
-      await partyMember.update({
+      await partyMember.updateOne({
         [`items.quests.${petQuest}`]: 1,
       });
 

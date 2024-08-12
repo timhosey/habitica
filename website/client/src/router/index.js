@@ -1,56 +1,27 @@
 import Vue from 'vue';
 import VueRouter from 'vue-router';
+import * as Analytics from '@/libs/analytics';
 import getStore from '@/store';
 import handleRedirect from './handleRedirect';
 
-import ParentPage from '@/components/parentPage';
 import { PAGES } from '@/libs/consts';
+import { STATIC_ROUTES } from './static-routes';
+import { USER_ROUTES } from './user-routes';
+import { DEPRECATED_ROUTES } from '@/router/deprecated-routes';
 
-// NOTE: when adding a page make sure to implement setTitle
-
-// Static Pages
-const StaticWrapper = () => import(/* webpackChunkName: "entry" */'@/components/static/staticWrapper');
-const HomePage = () => import(/* webpackChunkName: "entry" */'@/components/static/home');
-
-const AppPage = () => import(/* webpackChunkName: "static" */'@/components/static/app');
-const AppleRedirectPage = () => import(/* webpackChunkName: "static" */'@/components/static/appleRedirect');
-const ClearBrowserDataPage = () => import(/* webpackChunkName: "static" */'@/components/static/clearBrowserData');
-const CommunityGuidelinesPage = () => import(/* webpackChunkName: "static" */'@/components/static/communityGuidelines');
-const ContactPage = () => import(/* webpackChunkName: "static" */'@/components/static/contact');
-const FAQPage = () => import(/* webpackChunkName: "static" */'@/components/static/faq');
-const FeaturesPage = () => import(/* webpackChunkName: "static" */'@/components/static/features');
-const GroupPlansPage = () => import(/* webpackChunkName: "static" */'@/components/static/groupPlans');
-// Commenting out merch page see
-// https://github.com/HabitRPG/habitica/issues/12039
-// const MerchPage = () => import(/* webpackChunkName: "static" */'@/components/static/merch');
-const NewsPage = () => import(/* webpackChunkName: "static" */'@/components/static/newStuff');
-const OverviewPage = () => import(/* webpackChunkName: "static" */'@/components/static/overview');
-const PressKitPage = () => import(/* webpackChunkName: "static" */'@/components/static/pressKit');
-const PrivacyPage = () => import(/* webpackChunkName: "static" */'@/components/static/privacy');
-const TermsPage = () => import(/* webpackChunkName: "static" */'@/components/static/terms');
+// NOTE: when adding a page make sure to implement the `common:setTitle` action
 
 const RegisterLoginReset = () => import(/* webpackChunkName: "auth" */'@/components/auth/registerLoginReset');
 const Logout = () => import(/* webpackChunkName: "auth" */'@/components/auth/logout');
-
-// User Pages
-// const StatsPage = () => import(/* webpackChunkName: "user" */'./components/userMenu/stats');
-// const AchievementsPage =
-// () => import(/* webpackChunkName: "user" */'./components/userMenu/achievements');
-const ProfilePage = () => import(/* webpackChunkName: "user" */'@/components/userMenu/profilePage');
-
-// Settings
-const Settings = () => import(/* webpackChunkName: "settings" */'@/components/settings/index');
-const API = () => import(/* webpackChunkName: "settings" */'@/components/settings/api');
-const DataExport = () => import(/* webpackChunkName: "settings" */'@/components/settings/dataExport');
-const Notifications = () => import(/* webpackChunkName: "settings" */'@/components/settings/notifications');
-const PromoCode = () => import(/* webpackChunkName: "settings" */'@/components/settings/promoCode');
-const Site = () => import(/* webpackChunkName: "settings" */'@/components/settings/site');
-const Subscription = () => import(/* webpackChunkName: "settings" */'@/components/settings/subscription');
 
 // Hall
 const HallPage = () => import(/* webpackChunkName: "hall" */'@/components/hall/index');
 const PatronsPage = () => import(/* webpackChunkName: "hall" */'@/components/hall/patrons');
 const HeroesPage = () => import(/* webpackChunkName: "hall" */'@/components/hall/heroes');
+
+// Admin Panel
+const AdminPanelPage = () => import(/* webpackChunkName: "admin-panel" */'@/components/admin-panel');
+const AdminPanelUserPage = () => import(/* webpackChunkName: "admin-panel" */'@/components/admin-panel/user-support');
 
 // Except for tasks that are always loaded all the other main level
 // All the main level
@@ -67,13 +38,10 @@ const ItemsPage = () => import(/* webpackChunkName: "inventory" */'@/components/
 const EquipmentPage = () => import(/* webpackChunkName: "inventory" */'@/components/inventory/equipment/index');
 const StablePage = () => import(/* webpackChunkName: "inventory" */'@/components/inventory/stable/index');
 
-// Guilds
-const GuildIndex = () => import(/* webpackChunkName: "guilds" */ '@/components/groups/index');
-const TavernPage = () => import(/* webpackChunkName: "guilds" */ '@/components/groups/tavern');
-const MyGuilds = () => import(/* webpackChunkName: "guilds" */ '@/components/groups/myGuilds');
-const GuildsDiscoveryPage = () => import(/* webpackChunkName: "guilds" */ '@/components/groups/discovery');
+// Guilds & Parties
 const GroupPage = () => import(/* webpackChunkName: "guilds" */ '@/components/groups/group');
 const GroupPlansAppPage = () => import(/* webpackChunkName: "guilds" */ '@/components/groups/groupPlan');
+const LookingForParty = () => import(/* webpackChunkName: "guilds" */ '@/components/groups/lookingForParty');
 
 // Group Plans
 const GroupPlanIndex = () => import(/* webpackChunkName: "group-plans" */ '@/components/group-plans/index');
@@ -92,10 +60,9 @@ const ChallengeDetail = () => import(/* webpackChunkName: "challenges" */ '@/com
 const ShopsContainer = () => import(/* webpackChunkName: "shops" */'@/components/shops/index');
 const MarketPage = () => import(/* webpackChunkName: "shops-market" */'@/components/shops/market/index');
 const QuestsPage = () => import(/* webpackChunkName: "shops-quest" */'@/components/shops/quests/index');
+const CustomizationsPage = () => import(/* webpackChunkName: "shops-customizations" */'@/components/shops/customizations/index');
 const SeasonalPage = () => import(/* webpackChunkName: "shops-seasonal" */'@/components/shops/seasonal/index');
 const TimeTravelersPage = () => import(/* webpackChunkName: "shops-timetravelers" */'@/components/shops/timeTravelers/index');
-
-const NotFoundPage = () => import(/* webpackChunkName: "not-found" */'@/components/404');
 
 Vue.use(VueRouter);
 
@@ -108,7 +75,7 @@ const router = new VueRouter({
   scrollBehavior () {
     return { x: 0, y: 0 };
   },
-  // requiresLogin is true by default, isStatic false
+  // meta defaults: requiresLogin true, privilegeNeeded empty
   // NOTE: when adding a new route entry make sure to implement the `common:setTitle` action
   // in the route component to set a specific subtitle for the page.
   routes: [
@@ -121,16 +88,14 @@ const router = new VueRouter({
     { name: 'logout', path: '/logout', component: Logout },
     {
       name: 'resetPassword', path: '/reset-password', component: RegisterLoginReset, meta: { requiresLogin: false },
+    }, {
+      name: 'forgotPassword', path: '/forgot-password', component: RegisterLoginReset, meta: { requiresLogin: false },
     },
     { name: 'tasks', path: '/', component: UserTasks },
     {
       name: 'userProfile',
       path: '/profile/:userId',
-      component: ProfilePage,
       props: true,
-      children: [
-        { name: 'userProfilePage', path: ':startingPage', component: ProfilePage },
-      ],
     },
     {
       path: '/inventory',
@@ -147,11 +112,13 @@ const router = new VueRouter({
       children: [
         { name: 'market', path: 'market', component: MarketPage },
         { name: 'quests', path: 'quests', component: QuestsPage },
+        { name: 'customizations', path: 'customizations', component: CustomizationsPage },
         { name: 'seasonal', path: 'seasonal', component: SeasonalPage },
         { name: 'time', path: 'time', component: TimeTravelersPage },
       ],
     },
     { name: 'party', path: '/party', component: GroupPage },
+    { name: 'lookingForParty', path: '/looking-for-party', component: LookingForParty },
     { name: 'groupPlan', path: '/group-plans', component: GroupPlansAppPage },
     {
       name: 'groupPlanDetail',
@@ -179,29 +146,7 @@ const router = new VueRouter({
         },
       ],
     },
-    {
-      path: '/groups',
-      component: GuildIndex,
-      children: [
-        { name: 'tavern', path: 'tavern', component: TavernPage },
-        {
-          name: 'myGuilds',
-          path: 'myGuilds',
-          component: MyGuilds,
-        },
-        {
-          name: 'guildsDiscovery',
-          path: 'discovery',
-          component: GuildsDiscoveryPage,
-        },
-        {
-          name: 'guild',
-          path: 'guild/:groupId',
-          component: GroupPage,
-          props: true,
-        },
-      ],
-    },
+    DEPRECATED_ROUTES,
     { path: PAGES.PRIVATE_MESSAGES, name: 'privateMessages', component: MessagesIndex },
     {
       name: 'challenges',
@@ -226,114 +171,8 @@ const router = new VueRouter({
         },
       ],
     },
-    {
-      path: '/user',
-      component: ParentPage,
-      children: [
-        { name: 'stats', path: 'stats', component: ProfilePage },
-        { name: 'achievements', path: 'achievements', component: ProfilePage },
-        { name: 'profile', path: 'profile', component: ProfilePage },
-        {
-          name: 'settings',
-          path: 'settings',
-          component: Settings,
-          children: [
-            {
-              name: 'site',
-              path: 'site',
-              component: Site,
-            },
-            {
-              name: 'api',
-              path: 'api',
-              component: API,
-            },
-            {
-              name: 'dataExport',
-              path: 'data-export',
-              component: DataExport,
-            },
-            {
-              name: 'promoCode',
-              path: 'promo-code',
-              component: PromoCode,
-            },
-            {
-              name: 'subscription',
-              path: 'subscription',
-              component: Subscription,
-            },
-            {
-              name: 'notifications',
-              path: 'notifications',
-              component: Notifications,
-            },
-          ],
-        },
-      ],
-    },
-    {
-      path: '/static',
-      component: StaticWrapper,
-      children: [
-        {
-          name: 'app', path: 'app', component: AppPage, meta: { requiresLogin: false },
-        },
-        {
-          name: 'appleRedirect', path: 'apple-redirect', component: AppleRedirectPage, meta: { requiresLogin: false },
-        },
-        {
-          name: 'clearBrowserData', path: 'clear-browser-data', component: ClearBrowserDataPage, meta: { requiresLogin: false },
-        },
-        {
-          name: 'communityGuidelines', path: 'community-guidelines', component: CommunityGuidelinesPage, meta: { requiresLogin: false },
-        },
-        {
-          name: 'contact', path: 'contact', component: ContactPage, meta: { requiresLogin: false },
-        },
-        {
-          name: 'faq', path: 'faq', component: FAQPage, meta: { requiresLogin: false },
-        },
-        {
-          name: 'features', path: 'features', component: FeaturesPage, meta: { requiresLogin: false },
-        },
-        {
-          name: 'groupPlans', path: 'group-plans', component: GroupPlansPage, meta: { requiresLogin: false },
-        },
-        {
-          name: 'home', path: 'home', component: HomePage, meta: { requiresLogin: false },
-        },
-        {
-          name: 'front', path: 'front', component: HomePage, meta: { requiresLogin: false },
-        },
-        // Commenting out merch page see
-        // https://github.com/HabitRPG/habitica/issues/12039
-        // {
-        //   name: 'merch', path: 'merch', component: MerchPage, meta: { requiresLogin: false },
-        // },
-        {
-          name: 'news', path: 'new-stuff', component: NewsPage, meta: { requiresLogin: false },
-        },
-        {
-          name: 'overview', path: 'overview', component: OverviewPage, meta: { requiresLogin: false },
-        },
-        {
-          name: 'plans', path: 'plans', component: GroupPlansPage, meta: { requiresLogin: false },
-        },
-        {
-          name: 'pressKit', path: 'press-kit', component: PressKitPage, meta: { requiresLogin: false },
-        },
-        {
-          name: 'privacy', path: 'privacy', component: PrivacyPage, meta: { requiresLogin: false },
-        },
-        {
-          name: 'terms', path: 'terms', component: TermsPage, meta: { requiresLogin: false },
-        },
-        {
-          name: 'notFound', path: 'not-found', component: NotFoundPage, meta: { requiresLogin: false },
-        },
-      ],
-    },
+    USER_ROUTES,
+    STATIC_ROUTES,
     {
       path: '/hall',
       component: HallPage,
@@ -342,8 +181,34 @@ const router = new VueRouter({
         { name: 'contributors', path: 'contributors', component: HeroesPage },
       ],
     },
+
+    {
+      name: 'adminPanel',
+      path: '/admin-panel',
+      component: AdminPanelPage,
+      meta: {
+        privilegeNeeded: [ // any one of these is enough to give access
+          'userSupport',
+          'newsPoster',
+        ],
+      },
+      children: [
+        {
+          name: 'adminPanelUser',
+          path: ':userIdentifier', // User ID or Username
+          component: AdminPanelUserPage,
+          meta: {
+            privilegeNeeded: [
+              'userSupport',
+            ],
+          },
+        },
+      ],
+    },
+
     // Only used to handle some redirects
     // See router.beforeEach
+    { path: '/static/faq/tavern-and-guilds', redirect: '/static/tavern-and-guilds' },
     { path: '/redirect/:redirect', name: 'redirect' },
     { path: '*', redirect: { name: 'notFound' } },
   ],
@@ -351,9 +216,10 @@ const router = new VueRouter({
 
 const store = getStore();
 
-router.beforeEach((to, from, next) => {
-  const { isUserLoggedIn } = store.state;
+router.beforeEach(async (to, from, next) => {
+  const { isUserLoggedIn, isUserLoaded } = store.state;
   const routeRequiresLogin = to.meta.requiresLogin !== false;
+  const routePrivilegeNeeded = to.meta.privilegeNeeded;
 
   if (to.name === 'redirect') return handleRedirect(to, from, next);
 
@@ -386,6 +252,30 @@ router.beforeEach((to, from, next) => {
     return next({ name: 'tasks' });
   }
 
+  if (routePrivilegeNeeded) {
+    // Redirect non-admin users when trying to access a page.
+    if (!isUserLoaded) await store.dispatch('user:fetch');
+    if (!store.state.user.data.permissions.fullAccess) {
+      const userHasPriv = routePrivilegeNeeded.some(
+        privName => store.state.user.data.permissions[privName],
+      );
+      if (!userHasPriv) return next({ name: 'tasks' });
+    }
+  }
+
+  if (to.name === 'party') {
+    router.app.$root.$emit('update-party');
+  }
+
+  if (to.name === 'lookingForParty') {
+    Analytics.track({
+      hitType: 'event',
+      eventName: 'View Find Members',
+      eventAction: 'View Find Members',
+      eventCategory: 'behavior',
+    }, { trackOnClient: true });
+  }
+
   // Redirect old guild urls
   if (to.hash.indexOf('#/options/groups/guilds/') !== -1) {
     const splits = to.hash.split('/');
@@ -397,6 +287,21 @@ router.beforeEach((to, from, next) => {
         groupId: guildId,
       },
     });
+  }
+
+  // Redirect from Guild link to Group Plan where possible
+  if (to.name === 'guild') {
+    await store.dispatch('guilds:getGroupPlans');
+    const { groupPlans } = store.state;
+    const groupPlanIds = groupPlans.data.map(groupPlan => groupPlan._id);
+    if (groupPlanIds.indexOf(to.params.groupId) !== -1) {
+      return next({
+        name: 'groupPlanDetailInformation',
+        params: {
+          groupId: to.params.groupId,
+        },
+      });
+    }
   }
 
   // Redirect old challenge urls
@@ -412,38 +317,50 @@ router.beforeEach((to, from, next) => {
     });
   }
 
-  if ((to.name === 'userProfile' || to.name === 'userProfilePage') && from.name !== null) {
+  if ((to.name === 'userProfile')) {
     let startingPage = 'profile';
     if (to.params.startingPage !== undefined) {
       startingPage = to.params.startingPage;
     }
+    if (from.name === null) {
+      store.state.postLoadModal = `profile/${to.params.userId}`;
+      return next({ name: 'tasks' });
+    }
     router.app.$emit('habitica:show-profile', {
       userId: to.params.userId,
       startingPage,
-      path: to.path,
+      fromPath: from.path,
+      toPath: to.path,
     });
 
     return null;
   }
 
   if (to.name === 'tasks' && to.query.openGemsModal === 'true') {
-    setTimeout(() => router.app.$emit('bv::show::modal', 'buy-gems'), 500);
+    store.state.postLoadModal = 'buy-gems';
     return next({ name: 'tasks' });
   }
 
   if ((to.name === 'stats' || to.name === 'achievements' || to.name === 'profile') && from.name !== null) {
     router.app.$emit('habitica:show-profile', {
       startingPage: to.name,
-      path: to.path,
+      fromPath: from.path,
+      toPath: to.path,
     });
     return null;
   }
 
-  if (from.name === 'userProfile' || from.name === 'userProfilePage' || from.name === 'stats' || from.name === 'achievements' || from.name === 'profile') {
+  if (from.name === 'userProfile' || from.name === 'stats' || from.name === 'achievements' || from.name === 'profile') {
     router.app.$root.$emit('bv::hide::modal', 'profile');
   }
 
   return next();
+});
+
+router.afterEach((to, from) => {
+  if (from.name === 'chatSunsetFaq') {
+    document.body.style.background = '#f9f9f9';
+  }
 });
 
 export default router;

@@ -8,10 +8,10 @@
       <div class="spell">
         <div class="spell-border">
           <div class="mana">
-            <div
-              class="img"
-              :class="`shop_${spell.key} shop-sprite item-img`"
-            ></div>
+            <Sprite
+            class="img"
+              :imageName="`shop_${spell.key}`"
+            />
           </div>
         </div>
         <div class="details">
@@ -68,16 +68,16 @@
               </b-popover>
               <div
                 class="spell-border"
-                :class="{ disabled: spellDisabled(key) || user.stats.lvl < skill.lvl }"
+                :class="{ disabled: spellDisabled(key) || user.stats.lvl < skill.lvl,
+                          'insufficient-mana': user.stats.mp < skill.mana }"
               >
                 <div
                   class="spell"
                 >
                   <div class="details">
-                    <div
-                      class="img"
-                      :class="`shop_${skill.key} shop-sprite item-img`"
-                    ></div>
+                    <Sprite
+              :imageName="`shop_${skill.key}`"
+            />
                   </div>
                   <div
                     v-if="user.stats.lvl < skill.lvl"
@@ -85,19 +85,6 @@
                   >
                     <div class="mana-text level">
                       <div>Level {{ skill.lvl }}</div>
-                    </div>
-                  </div>
-                  <div
-                    v-else-if="spellDisabled(key) === true"
-                    class="mana"
-                  >
-                    <div class="mana-text">
-                      <div
-                        v-once
-                        class="svg-icon"
-                        v-html="icons.mana"
-                      ></div>
-                      <div>{{ skill.mana }}</div>
                     </div>
                   </div>
                   <div
@@ -200,7 +187,7 @@
     border-radius: 4px;
     margin-bottom: 1rem;
 
-    &:hover:not(.disabled) {
+    &:hover:not(.disabled):not(.insufficient-mana) {
       background-color: $purple-400;
       cursor: pointer;
       box-shadow: 0 4px 4px 0 rgba(26, 24, 29, 0.16),
@@ -216,11 +203,19 @@
           background-color: rgba(26, 24, 29, 0.5);
         }
 
+        .mana-text {
+          color: $blue-500;
+        }
+
         .level {
           color: $white;
           font-weight: normal;
         }
       }
+    }
+
+    &.insufficient-mana:not(.disabled) {
+      opacity: 0.5;
     }
 
     .spell {
@@ -405,10 +400,12 @@ import {
   setLocalSetting,
   getLocalSetting,
 } from '@/libs/userlocalManager';
+import Sprite from '@/components/ui/sprite';
 
 export default {
   components: {
     Drawer,
+    Sprite,
   },
   directives: {
     mousePosition: MouseMoveDirective,
@@ -452,8 +449,10 @@ export default {
       this.$store.state.spellOptions.spellDrawOpen = newState;
 
       if (newState) {
-        setLocalSetting(CONSTANTS.keyConstants.SPELL_DRAWER_STATE,
-          CONSTANTS.drawerStateValues.DRAWER_OPEN);
+        setLocalSetting(
+          CONSTANTS.keyConstants.SPELL_DRAWER_STATE,
+          CONSTANTS.drawerStateValues.DRAWER_OPEN,
+        );
         return;
       }
 
@@ -465,7 +464,7 @@ export default {
     spellDisabled (skill) {
       const incompleteDailiesDue = this
         .getUnfilteredTaskList('daily')
-        .filter(daily => !daily.completed && daily.isDue)
+        .filter(daily => !daily.completed && !daily.group.id && daily.isDue)
         .length;
 
       if (skill === 'frost' && this.user.stats.buffs.streaks) {
@@ -481,7 +480,9 @@ export default {
     skillNotes (skill) {
       let notes = skill.notes();
 
-      if (skill.key === 'frost' && this.spellDisabled(skill.key)) {
+      if (this.user.stats.lvl < skill.lvl) {
+        notes = this.$t('spellLevelTooHigh', { level: skill.lvl });
+      } else if (skill.key === 'frost' && this.spellDisabled(skill.key)) {
         notes = this.$t('spellAlreadyCast');
       } else if (skill.key === 'stealth' && this.spellDisabled(skill.key)) {
         notes = this.$t('spellAlreadyCast');

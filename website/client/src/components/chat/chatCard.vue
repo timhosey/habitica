@@ -5,7 +5,7 @@
       class="mentioned-icon"
     ></div>
     <div
-      v-if="user.contributor.admin && msg.flagCount"
+      v-if="hasPermission(user, 'moderator') && msg.flagCount"
       class="message-hidden"
     >
       {{ flagCountDescription }}
@@ -54,7 +54,7 @@
         </div>
         <div
           v-if="(user.flags.communityGuidelinesAccepted && msg.uuid !== 'system')
-            && (!isMessageReported || user.contributor.admin)"
+            && (!isMessageReported || hasPermission(user, 'moderator'))"
           class="action d-flex align-items-center"
           @click="report(msg)"
         >
@@ -68,7 +68,7 @@
           </div>
         </div>
         <div
-          v-if="msg.uuid === user._id || user.contributor.admin"
+          v-if="msg.uuid === user._id || hasPermission(user, 'moderator')"
           class="action d-flex align-items-center"
           @click="remove()"
         >
@@ -201,8 +201,9 @@ import moment from 'moment';
 import cloneDeep from 'lodash/cloneDeep';
 import escapeRegExp from 'lodash/escapeRegExp';
 
+import { CHAT_FLAG_LIMIT_FOR_HIDING, CHAT_FLAG_FROM_SHADOW_MUTE } from '@/../../common/script/constants';
 import renderWithMentions from '@/libs/renderWithMentions';
-import { mapState } from '@/libs/store';
+import { userStateMixin } from '../../mixins/userState';
 import userLink from '../userLink';
 
 import deleteIcon from '@/assets/svg/delete.svg';
@@ -210,7 +211,6 @@ import copyIcon from '@/assets/svg/copy.svg';
 import likeIcon from '@/assets/svg/like.svg';
 import likedIcon from '@/assets/svg/liked.svg';
 import reportIcon from '@/assets/svg/report.svg';
-import { CHAT_FLAG_LIMIT_FOR_HIDING, CHAT_FLAG_FROM_SHADOW_MUTE } from '@/../../common/script/constants';
 
 export default {
   components: { userLink },
@@ -223,6 +223,7 @@ export default {
       return moment(value).toDate().toString();
     },
   },
+  mixins: [userStateMixin],
   props: {
     msg: {},
     groupId: {},
@@ -240,7 +241,6 @@ export default {
     };
   },
   computed: {
-    ...mapState({ user: 'user.data' }),
     isUserMentioned () {
       const message = this.msg;
 

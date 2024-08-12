@@ -11,21 +11,26 @@ import {
   MAX_INCENTIVES,
   MAX_LEVEL,
   MAX_LEVEL_HARD_CAP,
+  MAX_FIELD_HARD_CAP,
   MAX_STAT_POINTS,
   MAX_SUMMARY_SIZE_FOR_CHALLENGES,
   MAX_SUMMARY_SIZE_FOR_GUILDS,
   MIN_SHORTNAME_SIZE_FOR_CHALLENGES,
   PARTY_LIMIT_MEMBERS,
   MINIMUM_PASSWORD_LENGTH,
+  MAXIMUM_PASSWORD_LENGTH,
   SUPPORTED_SOCIAL_NETWORKS,
   TAVERN_ID,
   MAX_MESSAGE_LENGTH,
   MAX_GIFT_MESSAGE_LENGTH,
 } from './constants';
 import content from './content/index';
+import { getCurrentGalaEvent, getScheduleMatchingGroup } from './content/constants/schedule';
 import * as count from './count';
 // TODO under api.libs.cron?
-import { daysSince, DAY_MAPPING, shouldDo } from './cron';
+import {
+  daysSince, DAY_MAPPING, shouldDo, getPlanContext, getPlanMonths,
+} from './cron';
 import apiErrors from './errors/apiErrorMessages';
 import commonErrors from './errors/commonErrorMessages';
 import autoAllocate from './fns/autoAllocate';
@@ -81,7 +86,7 @@ import reset from './ops/reset';
 import revive from './ops/revive';
 import scoreTask from './ops/scoreTask';
 import sell from './ops/sell';
-import sleep from './ops/sleep';
+import { sleep } from './ops/sleep';
 import allocate from './ops/stats/allocate';
 import allocateBulk from './ops/stats/allocateBulk';
 import allocateNow from './ops/stats/allocateNow';
@@ -91,15 +96,23 @@ import updateTask from './ops/updateTask';
 import * as statHelpers from './statHelpers';
 import { unEquipByType } from './ops/unequip';
 import getOfficialPinnedItems from './libs/getOfficialPinnedItems';
+import cleanupPinnedItems from './libs/cleanupPinnedItems';
 import { sleepAsync } from './libs/sleepAsync';
 
-const api = {};
-api.content = content;
-api.errors = errors;
-api.i18n = i18n;
-api.shouldDo = shouldDo;
-api.daysSince = daysSince;
-api.DAY_MAPPING = DAY_MAPPING;
+const api = {
+  content,
+  errors,
+  i18n,
+  shouldDo,
+  getPlanContext,
+  getPlanMonths,
+  daysSince,
+  DAY_MAPPING,
+  schedule: {
+    getCurrentGalaEvent,
+    getScheduleMatchingGroup,
+  },
+};
 
 api.constants = {
   MAX_INCENTIVES,
@@ -114,9 +127,11 @@ api.constants = {
   CHAT_FLAG_FROM_MOD,
   CHAT_FLAG_FROM_SHADOW_MUTE,
   MINIMUM_PASSWORD_LENGTH,
+  MAXIMUM_PASSWORD_LENGTH,
   MAX_MESSAGE_LENGTH,
   MAX_GIFT_MESSAGE_LENGTH,
   MAX_LEVEL_HARD_CAP,
+  MAX_FIELD_HARD_CAP,
 };
 // TODO Move these under api.constants
 api.maxLevel = MAX_LEVEL;
@@ -150,6 +165,7 @@ api.onboarding = onboarding;
 api.setDebuffPotionItems = setDebuffPotionItems;
 api.getDebuffPotionItems = getDebuffPotionItems;
 api.getOfficialPinnedItems = getOfficialPinnedItems;
+api.cleanupPinnedItems = cleanupPinnedItems;
 api.sleepAsync = sleepAsync;
 
 api.fns = {

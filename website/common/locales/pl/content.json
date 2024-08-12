@@ -212,7 +212,7 @@
     "hatchingPotionFrost": "Mroźny",
     "hatchingPotionIcySnow": "Lodowaty Śnieg",
     "hatchingPotionNotes": "Wylej eliksir na jajko, a wykluje się z niego <%= potText(locale) %>.",
-    "premiumPotionAddlNotes": "Nie nadaje się do użytku na jajach otrzymanych za misje. Dostępny w sprzedaży do  <%= date(locale) %>.",
+    "premiumPotionAddlNotes": "Nie nadaje się do użytku na jajach otrzymanych za misje. Dostępny w sprzedaży do <%= date(locale) %>.",
     "foodMeat": "Mięso",
     "foodMeatThe": "Mięso",
     "foodMeatA": "Mięso",
@@ -364,5 +364,15 @@
     "hatchingPotionTurquoise": "Turkusowy",
     "hatchingPotionStainedGlass": "Witraż",
     "hatchingPotionBlackPearl": "Czarna Perła",
-    "hatchingPotionAutumnLeaf": "Jesienny Liść"
+    "hatchingPotionAutumnLeaf": "Jesienny Liść",
+    "hatchingPotionSunset": "Zachód Słońca",
+    "hatchingPotionPolkaDot": "Groszkowana",
+    "hatchingPotionSolarSystem": "Układ Słoneczny",
+    "hatchingPotionMoonglow": "Blask Księżyca",
+    "hatchingPotionMossyStone": "Omszony Głaz",
+    "hatchingPotionOnyx": "Onyks",
+    "hatchingPotionPorcelain": "Porcelana",
+    "hatchingPotionVirtualPet": "Wirtualny Zwierzak",
+    "hatchingPotionPinkMarble": "Różowy Marmur",
+    "hatchingPotionTeaShop": "Sklep Herbaciany"
 }

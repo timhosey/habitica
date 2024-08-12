@@ -27,7 +27,7 @@
     position: fixed;
     right: 10px;
     width: 350px;
-    z-index: 999;
+    z-index: 9999; // to keep it above modal overlays
 
     top: var(--current-scrollY);
 
@@ -42,14 +42,6 @@
 
   .notification-item {
     transition: transform 0.25s ease-in, opacity 0.25s ease-in;
-  }
-
-  .notifications-move {
-    // transition: transform .5s;
-  }
-
-  .notifications-enter-active {
-    // transition: opacity .5s;
   }
 
   .notifications-leave-active {
@@ -68,9 +60,9 @@
 import debounce from 'lodash/debounce';
 import find from 'lodash/find';
 
+import { sleepAsync } from '@/../../common/script/libs/sleepAsync';
 import { mapState } from '@/libs/store';
 import notification from './notification';
-import { sleepAsync } from '../../../../common/script/libs/sleepAsync';
 import { getBannerHeight } from '@/libs/banner.func';
 import { EVENTS } from '@/libs/events';
 import { worldStateMixin } from '@/mixins/worldState';
@@ -81,12 +73,12 @@ const DELAY_DELETE_AND_NEW = 60;
 const DELAY_FILLING_ENTRIES = 240;
 
 export default {
-  mixins: [
-    worldStateMixin,
-  ],
   components: {
     notification,
   },
+  mixins: [
+    worldStateMixin,
+  ],
   props: {
     preventQueue: {
       type: Boolean,
@@ -106,6 +98,7 @@ export default {
       preventMultipleWatchExecution: false,
       eventPromoBannerHeight: null,
       sleepingBannerHeight: null,
+      warningBannerHeight: null,
     };
   },
   computed: {
@@ -134,6 +127,10 @@ export default {
     },
     notificationBannerHeight () {
       let scrollPosToCheck = 56;
+
+      if (this.warningBannerHeight) {
+        scrollPosToCheck += this.warningBannerHeight;
+      }
 
       if (this.sleepingBannerHeight) {
         scrollPosToCheck += this.sleepingBannerHeight;
@@ -295,11 +292,6 @@ export default {
       }
     },
     triggerRemovalTimerIfAllowed () {
-      // this is only for storybook
-      if (this.preventQueue) {
-        return;
-      }
-
       if (this.notificationStore.length !== 0) {
         this.startNotificationRemovalTimer();
       }
@@ -361,6 +353,7 @@ export default {
 
     updateBannerHeightAndScrollY () {
       this.updateEventBannerHeight();
+      this.warningBannerHeight = getBannerHeight('chat-warning');
       this.sleepingBannerHeight = getBannerHeight('damage-paused');
       this.updateScrollY();
     },

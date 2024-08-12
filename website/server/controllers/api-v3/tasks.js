@@ -27,7 +27,7 @@ import {
   requiredGroupFields,
 } from '../../libs/tasks/utils';
 import common from '../../../common';
-import apiError from '../../libs/apiError';
+import { apiError } from '../../libs/apiError';
 
 /**
  * @apiDefine TaskNotFound
@@ -461,10 +461,9 @@ api.getChallengeTasks = {
     const group = await Group.getGroup({
       user,
       groupId: challenge.group,
-      fields: '_id type privacy',
-      optionalMembership: true,
+      fields: '_id type privacy purchased',
     });
-    if (!group || !challenge.canView(user, group)) throw new NotFound(res.t('challengeNotFound'));
+    if (!group && !challenge.canView(user, group)) throw new NotFound(res.t('challengeNotFound'));
 
     const tasks = await getTasks(req, res, { user, challenge });
     return res.respond(200, tasks);
@@ -632,7 +631,6 @@ api.updateTask = {
       verifyTaskModification(task, user, group, challenge, res);
     }
 
-    const oldCheckList = task.checklist;
     // we have to convert task to an object because otherwise things
     // don't get merged correctly. Bad for performances?
     const [updatedTaskObj] = common.ops.updateTask(task.toObject(), req);
@@ -654,14 +652,7 @@ api.updateTask = {
     // the other of the keys when using .toObject()
     // see https://github.com/Automattic/mongoose/issues/2749
 
-    task.group.approval.required = false;
-    if (sanitizedObj.requiresApproval) {
-      task.group.approval.required = true;
-    }
-    if (sanitizedObj.sharedCompletion) {
-      task.group.sharedCompletion = sanitizedObj.sharedCompletion;
-    }
-    if (sanitizedObj.managerNotes) {
+    if (Object.prototype.hasOwnProperty.call(sanitizedObj, 'managerNotes')) {
       task.group.managerNotes = sanitizedObj.managerNotes;
     }
 
@@ -695,26 +686,24 @@ api.updateTask = {
     setNextDue(task, user);
     const savedTask = await task.save();
 
-    if (group && task.group.id && task.group.assignedUsers.length > 0) {
-      const updateCheckListItems = _.remove(sanitizedObj.checklist, checklist => {
-        const indexOld = _.findIndex(oldCheckList, check => check.id === checklist.id);
-        if (indexOld !== -1) return checklist.text !== oldCheckList[indexOld].text;
-        return false; // Only return changes. Adding and remove are handled differently
-      });
-
-      await group.updateTask(savedTask, { updateCheckListItems });
-    }
-
     res.respond(200, savedTask);
 
     if (challenge) {
       challenge.updateTask(savedTask);
-    } else if (group && task.group.id && task.group.assignedUsers.length > 0) {
-      await group.updateTask(savedTask);
-    } else {
+    } else if (!group) {
       taskActivityWebhook.send(user, {
         type: 'updated',
         task: savedTask,
+      });
+    }
+
+    if (group) {
+      res.analytics.track('task edit', {
+        uuid: user._id,
+        hitType: 'event',
+        category: 'behavior',
+        taskType: task.type,
+        groupID: group._id,
       });
     }
   },
@@ -772,17 +761,12 @@ api.scoreTask = {
 
     const userStats = user.stats.toJSON();
 
-    // group tasks that require a manager's approval
-    if (taskResponse.requiresApproval === true) {
-      res.respond(202, { requiresApproval: true }, taskResponse.message);
-    } else {
-      const resJsonData = _.assign({
-        delta: taskResponse.delta,
-        _tmp: user._tmp,
-      }, userStats);
+    const resJsonData = _.assign({
+      delta: taskResponse.delta,
+      _tmp: user._tmp,
+    }, userStats);
 
-      res.respond(200, resJsonData);
-    }
+    res.respond(200, resJsonData);
   },
 };
 
@@ -830,21 +814,32 @@ api.moveTask = {
 
     const group = await getGroupFromTaskAndUser(task, user);
     const challenge = await getChallengeFromTask(task);
-    verifyTaskModification(task, user, group, challenge, res);
+    if (task.group.id && !task.userId) {
+      if (!group || (user.guilds.indexOf(group._id) === -1 && user.party._id !== group._id)) {
+        throw new NotFound(res.t('groupNotFound'));
+      }
+      if (task.group.assignedUsers.length !== 0
+        && task.group.assignedUsers.indexOf(user._id) === -1) {
+        throw new BadRequest('Use /group/:groupId/tasks/:taskId/move/to/:position route');
+      }
+    } else {
+      verifyTaskModification(task, user, group, challenge, res);
+    }
 
     if (task.type === 'todo' && task.completed) throw new BadRequest(res.t('cantMoveCompletedTodo'));
 
-    const owner = group || challenge || user;
+    const owner = challenge || user;
 
     // In memory updates
     const order = owner.tasksOrder[`${task.type}s`];
+
     moveTask(order, task._id, to);
 
     // Server updates
     // Cannot send $pull and $push on same field in one single op
     const pullQuery = { $pull: {} };
     pullQuery.$pull[`tasksOrder.${task.type}s`] = task.id;
-    await owner.update(pullQuery).exec();
+    await owner.updateOne(pullQuery).exec();
 
     let position = to;
     if (to === -1) position = order.length - 1; // push to bottom
@@ -854,13 +849,13 @@ api.moveTask = {
       $each: [task._id],
       $position: position,
     };
-    await owner.update(updateQuery).exec();
+    await owner.updateOne(updateQuery).exec();
 
     // Update the user version field manually,
     // it cannot be updated in the pre update hook
     // See https://github.com/HabitRPG/habitica/pull/9321#issuecomment-354187666 for more info
     // Only users have a version.
-    if (!group && !challenge) {
+    if (!challenge) {
       owner._v += 1;
     }
 
@@ -930,9 +925,6 @@ api.addChecklistItem = {
 
     res.respond(200, savedTask);
     if (challenge) challenge.updateTask(savedTask);
-    if (group && task.group.id && task.group.assignedUsers.length > 0) {
-      await group.updateTask(savedTask, { newCheckListItem });
-    }
   },
 };
 
@@ -963,9 +955,15 @@ api.scoreCheckListItem = {
     if (validationErrors) throw validationErrors;
 
     const { taskId } = req.params;
-    const task = await Tasks.Task.findByIdOrAlias(taskId, user._id, { userId: user._id });
+    const task = await Tasks.Task.findByIdOrAlias(taskId, user._id);
 
-    if (!task) throw new NotFound(res.t('messageTaskNotFound'));
+    if (!task || (!task.userId && !task.group.id)) throw new NotFound(res.t('messageTaskNotFound'));
+    if (task.userId && task.userId !== user._id) {
+      throw new BadRequest('Cannot score task belonging to another user.');
+    } else if (task.group.id && user.guilds.indexOf(task.group.id) === -1
+      && user.party._id !== task.group.id) {
+      throw new BadRequest('Cannot score task belonging to another user.');
+    }
     if (task.type !== 'daily' && task.type !== 'todo') throw new BadRequest(res.t('checklistOnlyDailyTodo'));
 
     const item = _.find(task.checklist, { id: req.params.itemId });
@@ -1037,9 +1035,6 @@ api.updateChecklistItem = {
 
     res.respond(200, savedTask);
     if (challenge) challenge.updateTask(savedTask);
-    if (group && task.group.id && task.group.assignedUsers.length > 0) {
-      await group.updateTask(savedTask);
-    }
   },
 };
 
@@ -1099,9 +1094,6 @@ api.removeChecklistItem = {
     const savedTask = await task.save();
     res.respond(200, savedTask);
     if (challenge) challenge.updateTask(savedTask);
-    if (group && task.group.id && task.group.assignedUsers.length > 0) {
-      await group.updateTask(savedTask, { removedCheckListItemId: req.params.itemId });
-    }
   },
 };
 
@@ -1274,7 +1266,7 @@ api.unlinkAllTasks = {
           removeFromArray(user.tasksOrder[`${task.type}s`], task._id);
         }
 
-        toSave.push(task.remove());
+        toSave.push(task.deleteOne());
       });
 
       toSave.push(user.save());
@@ -1330,9 +1322,9 @@ api.unlinkOneTask = {
     } else { // remove
       if (task.type !== 'todo' || !task.completed) { // eslint-disable-line no-lonely-if
         removeFromArray(user.tasksOrder[`${task.type}s`], taskId);
-        await Promise.all([user.save(), task.remove()]);
+        await Promise.all([user.save(), task.deleteOne()]);
       } else {
-        await task.remove();
+        await task.deleteOne();
       }
     }
 
@@ -1364,7 +1356,7 @@ api.clearCompletedTodos = {
 
     // Clear completed todos
     // Do not delete completed todos from challenges or groups, unless the task is broken
-    await Tasks.Task.remove({
+    await Tasks.Task.deleteMany({
       userId: user._id,
       type: 'todo',
       completed: true,
@@ -1441,16 +1433,16 @@ api.deleteTask = {
 
       const pullQuery = { $pull: {} };
       pullQuery.$pull[`tasksOrder.${task.type}s`] = task._id;
-      const taskOrderUpdate = (challenge || user).update(pullQuery).exec();
+      const taskOrderUpdate = (challenge || user).updateOne(pullQuery).exec();
 
       // Update the user version field manually,
       // it cannot be updated in the pre update hook
       // See https://github.com/HabitRPG/habitica/pull/9321#issuecomment-354187666 for more info
       if (!challenge) user._v += 1;
 
-      await Promise.all([taskOrderUpdate, task.remove()]);
+      await Promise.all([taskOrderUpdate, task.deleteOne()]);
     } else {
-      await task.remove();
+      await task.deleteOne();
     }
 
     res.respond(200, {});

@@ -8,7 +8,7 @@ import {
 } from '../errors';
 import { model as IapPurchaseReceipt } from '../../models/iapPurchaseReceipt';
 import { model as User } from '../../models/user';
-import { getGemsBlock, validateGiftMessage } from './gems';
+import { validateGiftMessage } from './gems';
 
 const api = {};
 
@@ -21,7 +21,7 @@ api.constants = {
   RESPONSE_STILL_VALID: 'SUBSCRIPTION_STILL_VALID',
 };
 
-api.verifyGemPurchase = async function verifyGemPurchase (options) {
+api.verifyPurchase = async function verifyPurchase (options) {
   const {
     gift, user, receipt, signature, headers,
   } = options;
@@ -61,39 +61,11 @@ api.verifyGemPurchase = async function verifyGemPurchase (options) {
     userId: user._id,
   });
 
-  let gemsBlockKey;
-
-  switch (receiptObj.productId) { // eslint-disable-line default-case
-    case 'com.habitrpg.android.habitica.iap.4gems':
-      gemsBlockKey = '4gems';
-      break;
-    case 'com.habitrpg.android.habitica.iap.20gems':
-    case 'com.habitrpg.android.habitica.iap.21gems':
-      gemsBlockKey = '21gems';
-      break;
-    case 'com.habitrpg.android.habitica.iap.42gems':
-      gemsBlockKey = '42gems';
-      break;
-    case 'com.habitrpg.android.habitica.iap.84gems':
-      gemsBlockKey = '84gems';
-      break;
-  }
-
-  if (!gemsBlockKey) throw new NotAuthorized(this.constants.RESPONSE_INVALID_ITEM);
-
-  const gemsBlock = getGemsBlock(gemsBlockKey);
-
-  if (gift) {
-    gift.type = 'gems';
-    if (!gift.gems) gift.gems = {};
-    gift.gems.amount = shared.content.gems[gemsBlock.key].gems;
-  }
-
-  await payments.buyGems({
+  await payments.buySkuItem({ // eslint-disable-line no-await-in-loop
     user,
     gift,
-    paymentMethod: this.constants.PAYMENT_METHOD_GOOGLE,
-    gemsBlock,
+    paymentMethod: api.constants.PAYMENT_METHOD_GOOGLE,
+    sku: googleRes.productId,
     headers,
   });
 
@@ -101,8 +73,12 @@ api.verifyGemPurchase = async function verifyGemPurchase (options) {
 };
 
 api.subscribe = async function subscribe (
-  sku, user, receipt, signature,
-  headers, nextPaymentProcessing = undefined,
+  sku,
+  user,
+  receipt,
+  signature,
+  headers,
+  nextPaymentProcessing = undefined,
 ) {
   if (!sku) throw new BadRequest(shared.i18n.t('missingSubscriptionCode'));
   let subCode;
@@ -244,11 +220,15 @@ api.cancelSubscribe = async function cancelSubscribe (user, headers) {
 
     const purchases = iap.getPurchaseData(googleRes);
     if (purchases.length === 0) throw new NotAuthorized(this.constants.RESPONSE_INVALID_RECEIPT);
-    const subscriptionData = purchases[0];
-    // Check to make sure the sub isn't active anymore.
-    if (subscriptionData.autoRenews) return;
-
-    dateTerminated = new Date(Number(subscriptionData.expirationDate));
+    for (const i in purchases) {
+      if (Object.prototype.hasOwnProperty.call(purchases, i)) {
+        const purchase = purchases[i];
+        if (purchase.autoRenewing !== false) return;
+        if (!dateTerminated || Number(purchase.expirationDate) > Number(dateTerminated)) {
+          dateTerminated = new Date(Number(purchase.expirationDate));
+        }
+      }
+    }
   } catch (err) {
     // Status:410 means that the subsctiption isn't active anymore and we can safely delete it
     if (err && err.message === 'Status:410') {
@@ -257,13 +237,14 @@ api.cancelSubscribe = async function cancelSubscribe (user, headers) {
       throw err;
     }
   }
-
-  await payments.cancelSubscription({
-    user,
-    nextBill: dateTerminated,
-    paymentMethod: this.constants.PAYMENT_METHOD_GOOGLE,
-    headers,
-  });
+  if (dateTerminated) {
+    await payments.cancelSubscription({
+      user,
+      nextBill: dateTerminated,
+      paymentMethod: this.constants.PAYMENT_METHOD_GOOGLE,
+      headers,
+    });
+  }
 };
 
 export default api;

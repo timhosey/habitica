@@ -370,5 +370,20 @@
     "hatchingPotionSunset": "Sonnenuntergang",
     "hatchingPotionSolarSystem": "Sonnensystem",
     "hatchingPotionMoonglow": "Mondschein",
-    "hatchingPotionOnyx": "Onyx"
+    "hatchingPotionOnyx": "Onyx",
+    "hatchingPotionVirtualPet": "Virtuelles Haustier",
+    "hatchingPotionPorcelain": "Porzellan",
+    "hatchingPotionRoseGold": "Rotgold",
+    "hatchingPotionPinkMarble": "Pink Marmor",
+    "hatchingPotionTeaShop": "Teeladen",
+    "hatchingPotionFungi": "Fungus",
+    "questEggGiraffeMountText": "Giraffe",
+    "questEggChameleonText": "Chamäleon",
+    "questEggChameleonMountText": "Chamäleon",
+    "hatchingPotionKoi": "Koi",
+    "questEggGiraffeText": "Giraffe",
+    "questEggGiraffeAdjective": "eine riesengroße",
+    "questEggChameleonAdjective": "ein chaotisches",
+    "questEggCrabText": "Krabbe",
+    "questEggCrabMountText": "Krabbe"
 }

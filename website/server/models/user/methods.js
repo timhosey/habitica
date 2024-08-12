@@ -1,6 +1,6 @@
 import moment from 'moment';
 import {
-  defaults, map, flatten, flow, compact, uniq, partialRight,
+  defaults, map, flatten, flow, compact, uniq, partialRight, remove,
 } from 'lodash';
 import common from '../../../common';
 
@@ -23,6 +23,7 @@ import amazonPayments from '../../libs/payments/amazon'; // eslint-disable-line 
 import stripePayments from '../../libs/payments/stripe'; // eslint-disable-line import/no-cycle
 import paypalPayments from '../../libs/payments/paypal'; // eslint-disable-line import/no-cycle
 import { model as NewsPost } from '../newsPost';
+import { TransactionModel as Transaction } from '../transaction';
 
 const { daysSince } = common;
 
@@ -215,7 +216,10 @@ schema.methods.addNotification = function addUserNotification (type, data = {}, 
  * @param  data  The data to add to the notification
  */
 schema.statics.pushNotification = async function pushNotification (
-  query, type, data = {}, seen = false,
+  query,
+  type,
+  data = {},
+  seen = false,
 ) {
   const newNotification = new UserNotification({ type, data, seen });
 
@@ -224,10 +228,9 @@ schema.statics.pushNotification = async function pushNotification (
     throw validationResult;
   }
 
-  await this.update(
+  await this.updateMany(
     query,
     { $push: { notifications: newNotification.toObject() } },
-    { multi: true },
   ).exec();
 };
 
@@ -273,13 +276,12 @@ schema.statics.addAchievementUpdate = async function addAchievementUpdate (query
   const validationResult = newNotification.validateSync();
   if (validationResult) throw validationResult;
 
-  await this.update(
+  await this.updateMany(
     query,
     {
       $push: { notifications: newNotification.toObject() },
       $set: { [`achievements.${achievement}`]: true },
     },
-    { multi: true },
   ).exec();
 };
 
@@ -381,8 +383,12 @@ schema.methods.daysUserHasMissed = function daysUserHasMissed (now, req = {}) {
     timezoneUtcOffsetFromUserPrefs = timezoneUtcOffsetFromBrowser;
   }
 
+  let lastCronTime = this.lastCron;
+  if (this.auth.timestamps.loggedIn < lastCronTime) {
+    lastCronTime = this.auth.timestamps.loggedIn;
+  }
   // How many days have we missed using the user's current timezone:
-  let daysMissed = daysSince(this.lastCron, defaults({ now }, this.preferences));
+  let daysMissed = daysSince(lastCronTime, defaults({ now }, this.preferences));
 
   if (timezoneUtcOffsetAtLastCron !== timezoneUtcOffsetFromUserPrefs) {
     // Give the user extra time based on the difference in timezones
@@ -394,7 +400,7 @@ schema.methods.daysUserHasMissed = function daysUserHasMissed (now, req = {}) {
     // Since cron last ran, the user's timezone has changed.
     // How many days have we missed using the old timezone:
     const daysMissedNewZone = daysMissed;
-    const daysMissedOldZone = daysSince(this.lastCron, defaults({
+    const daysMissedOldZone = daysSince(lastCronTime, defaults({
       now,
       timezoneUtcOffsetOverride: timezoneUtcOffsetAtLastCron,
     }, this.preferences));
@@ -434,7 +440,7 @@ schema.methods.daysUserHasMissed = function daysUserHasMissed (now, req = {}) {
         const timezoneOffsetDiff = timezoneUtcOffsetFromUserPrefs - timezoneUtcOffsetAtLastCron;
         // e.g., for dangerous zone change: -300 - -240 = -60 or 600 - 660= -60
 
-        this.lastCron = moment(this.lastCron).subtract(timezoneOffsetDiff, 'minutes');
+        this.lastCron = moment(lastCronTime).subtract(timezoneOffsetDiff, 'minutes');
         // NB: We don't change this.auth.timestamps.loggedin so that will still record
         // the time that the previous cron actually ran.
         // From now on we can ignore the old timezone:
@@ -497,12 +503,31 @@ schema.methods.isMemberOfGroupPlan = async function isMemberOfGroupPlan () {
   return groups.some(g => g.hasActiveGroupPlan());
 };
 
+schema.methods.teamsLed = async function teamsLed () {
+  const user = this;
+  const groups = await getUserGroupData(user);
+
+  remove(groups, group => !group.hasActiveGroupPlan);
+  remove(groups, group => user._id !== group.leader);
+
+  const groupIds = [];
+  groups.forEach(group => {
+    groupIds.push(group._id);
+  });
+
+  return groupIds;
+};
+
 schema.methods.isAdmin = function isAdmin () {
   return Boolean(this.contributor && this.contributor.admin);
 };
 
 schema.methods.isNewsPoster = function isNewsPoster () {
-  return Boolean(this.contributor && this.contributor.newsPoster);
+  return this.hasPermission('news');
+};
+
+schema.methods.hasPermission = function hasPermission (permission) {
+  return Boolean(this.permissions && (this.permissions[permission] || this.permissions.fullAccess));
 };
 
 // When converting to json add inbox messages from the Inbox collection
@@ -524,4 +549,61 @@ schema.methods.getSecretData = function getSecretData () {
   const user = this;
 
   return user.secret;
+};
+
+schema.methods.getFlagData = function getFlagData () {
+  const user = this;
+
+  return user.profile.flags;
+};
+
+schema.methods.updateBalance = async function updateBalance (
+  amount,
+  transactionType,
+  reference,
+  referenceText,
+) {
+  this.balance += amount;
+
+  if (transactionType === 'buy_gold') {
+    // Bulk these together in case the user is not using the bulk-buy feature
+    const lastTransaction = await Transaction.findOne(
+      { userId: this._id },
+      null,
+      { sort: { createdAt: -1 } },
+    );
+    if (lastTransaction.transactionType === transactionType) {
+      lastTransaction.amount += amount;
+      await lastTransaction.save();
+    }
+  }
+
+  await Transaction.create({
+    currency: 'gems',
+    userId: this._id,
+    transactionType,
+    amount,
+    reference,
+    referenceText,
+    currentAmount: this.balance,
+  });
+};
+
+schema.methods.updateHourglasses = async function updateHourglasses (
+  amount,
+  transactionType,
+  reference,
+  referenceText,
+) {
+  this.purchased.plan.consecutive.trinkets += amount;
+
+  await Transaction.create({
+    currency: 'hourglasses',
+    userId: this._id,
+    transactionType,
+    amount,
+    reference,
+    referenceText,
+    currentAmount: this.purchased.plan.consecutive.trinkets,
+  });
 };

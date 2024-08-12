@@ -1,6 +1,4 @@
-import moment from 'moment';
 import t from './translation';
-import { EVENTS } from './constants';
 
 /*
  ---------------------------------------------------------------
@@ -18,10 +16,6 @@ const bundles = {
       'harpy',
       'owl',
     ],
-    event: EVENTS.potions202105,
-    canBuy () {
-      return moment().isBefore(EVENTS.potions202105.end);
-    },
     type: 'quests',
     class: 'quest_bundle_featheredFriends',
     value: 7,
@@ -35,10 +29,6 @@ const bundles = {
       'turtle',
       'whale',
     ],
-    event: EVENTS.bundle202106,
-    canBuy () {
-      return moment().isBefore(EVENTS.bundle202106.end);
-    },
     type: 'quests',
     class: 'quest_bundle_splashyPals',
     value: 7,
@@ -52,9 +42,6 @@ const bundles = {
       'horse',
       'sheep',
     ],
-    canBuy () {
-      return moment().isBetween('2019-08-08', '2019-09-02');
-    },
     type: 'quests',
     value: 7,
   },
@@ -67,9 +54,6 @@ const bundles = {
       'spider',
       'frog',
     ],
-    canBuy () {
-      return moment().isBetween('2019-10-15', '2019-11-02');
-    },
     type: 'quests',
     value: 7,
   },
@@ -83,9 +67,6 @@ const bundles = {
       'evilsanta2',
       'penguin',
     ],
-    canBuy () {
-      return moment().isBetween('2022-01-11T08:00-05:00', '2022-01-31T20:00-05:00');
-    },
     type: 'quests',
     value: 7,
   },
@@ -98,9 +79,6 @@ const bundles = {
       'beetle',
       'butterfly',
     ],
-    canBuy () {
-      return moment().isBetween('2020-03-09', '2020-04-02');
-    },
     type: 'quests',
     value: 7,
   },
@@ -113,9 +91,6 @@ const bundles = {
       'ferret',
       'guineapig',
     ],
-    canBuy () {
-      return moment().isBetween('2018-05-08', '2018-06-02');
-    },
     type: 'quests',
     value: 7,
   },
@@ -128,9 +103,6 @@ const bundles = {
       'kraken',
       'octopus',
     ],
-    canBuy () {
-      return moment().isBetween('2020-07-14', '2020-08-02');
-    },
     type: 'quests',
     value: 7,
   },
@@ -143,9 +115,6 @@ const bundles = {
       'hedgehog',
       'treeling',
     ],
-    canBuy () {
-      return moment().isBetween('2018-09-11', '2018-10-02');
-    },
     type: 'quests',
     value: 7,
   },
@@ -158,9 +127,6 @@ const bundles = {
       'rock',
       'yarn',
     ],
-    canBuy () {
-      return moment().isBetween('2021-03-16T08:00-05:00', '2021-03-31T20:00-05:00');
-    },
     type: 'quests',
     value: 7,
   },
@@ -173,10 +139,6 @@ const bundles = {
       'penguin',
       'rooster',
     ],
-    event: EVENTS.bundle202109,
-    canBuy () {
-      return moment().isBefore(EVENTS.bundle202109.end);
-    },
     type: 'quests',
     value: 7,
   },
@@ -189,9 +151,6 @@ const bundles = {
       'seaserpent',
       'gryphon',
     ],
-    canBuy () {
-      return moment().isBefore('2021-02-28T08:00-05:00');
-    },
     type: 'quests',
     value: 7,
   },
@@ -204,9 +163,6 @@ const bundles = {
       'snake',
       'velociraptor',
     ],
-    canBuy () {
-      return moment().isBetween('2019-09-10', '2019-10-02');
-    },
     type: 'quests',
     value: 7,
   },
@@ -219,39 +175,30 @@ const bundles = {
       'triceratops',
       'trex_undead',
     ],
-    canBuy () {
-      return moment().isBetween('2019-11-14', '2019-12-02');
-    },
     type: 'quests',
     value: 7,
   },
   jungleBuddies: {
     key: 'jungleBuddies',
     text: t('jungleBuddiesText'),
-    notes: t('jungleBuddiesNotes', { date: moment('2020-05-31').format('LL') }),
+    notes: t('jungleBuddiesNotes'),
     bundleKeys: [
       'monkey',
       'sloth',
       'treeling',
     ],
-    canBuy () {
-      return moment().isBetween('2020-05-19', '2020-06-02');
-    },
     type: 'quests',
     value: 7,
   },
   sandySidekicks: {
     key: 'sandySidekicks',
     text: t('sandySidekicksText'),
-    notes: t('sandySidekicksNotes', { date: moment('2020-10-31').format('LL') }),
+    notes: t('sandySidekicksNotes'),
     bundleKeys: [
       'armadillo',
       'snake',
       'spider',
     ],
-    canBuy () {
-      return moment().isBetween('2020-10-13', '2020-11-02');
-    },
     type: 'quests',
     value: 7,
   },

@@ -363,8 +363,20 @@
     "foodPieGolden": "Torta de Creme de Banada Dourada",
     "hatchingPotionMossyStone": "Pedra Musgosa",
     "hatchingPotionStainedGlass": "Vitral",
-    "hatchingPotionAutumnLeaf": "Folha de Outono",
+    "hatchingPotionAutumnLeaf": "da Folha de Outono",
     "hatchingPotionBlackPearl": "Pérola Negra",
     "hatchingPotionSunset": "do Pôr do Sol",
-    "hatchingPotionMoonglow": "de Brilho da Lua"
+    "hatchingPotionMoonglow": "de Brilho da Lua",
+    "hatchingPotionOnyx": "Ônix",
+    "hatchingPotionSolarSystem": "Sistema Solar",
+    "hatchingPotionPolkaDot": "Bolinhas",
+    "hatchingPotionWindup": "de Corda",
+    "hatchingPotionVirtualPet": "Mascote Virtual",
+    "hatchingPotionPorcelain": "Porcelana",
+    "hatchingPotionPinkMarble": "de Mármore Rosa",
+    "hatchingPotionTeaShop": "Loja de Chá",
+    "questEggGiraffeMountText": "Girafa",
+    "hatchingPotionKoi": "Carpa",
+    "questEggGiraffeText": "Girafa",
+    "questEggGiraffeAdjective": "uma imponente"
 }

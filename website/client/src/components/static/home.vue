@@ -6,7 +6,7 @@
     <noscript class="banner">
       {{ $t('jsDisabledHeadingFull') }}
       <br />
-      <a href="http://www.enable-javascript.com/" target="_blank">{{ $t('jsDisabledLink') }}</a>
+      <a href="https://www.enable-javascript.com/" target="_blank">{{ $t('jsDisabledLink') }}</a>
     </noscript>
     <div
       id="intro-signup"
@@ -121,7 +121,7 @@
                 @click="socialAuth('apple')"
               >
                 <div
-                  class="svg-icon social-icon apple-icon"
+                  class="svg svg-icon social-icon apple-icon color"
                   v-html="icons.appleIcon"
                 ></div>
                 <span>{{ $t('signUpWithSocial', {social: 'Apple'}) }}</span>
@@ -354,6 +354,9 @@
 
 <style lang='scss'>
 @import '~@/assets/scss/static.scss';
+  #front .form-text a {
+    color: $white !important;
+  }
 </style>
 
 <style lang="scss" scoped>
@@ -362,10 +365,6 @@
 @import url('https://fonts.googleapis.com/css?family=Varela+Round');
 
   #front {
-    .form-text a {
-      color: #fff !important;
-    }
-
     .container-fluid {
       margin: 0;
     }
@@ -375,30 +374,24 @@
       padding-bottom: 5em;
     }
 
-    .logo {
-      width: 128px;
-      height: 28px;
-      color: purple;
-    }
-
     .purple-1, .purple-2, .purple-3, .purple-4, h1, h2, h3, h4, h5 {
-      color: #fff;
+      color: $white;
     }
 
     .purple-1 {
-      background-color: #6133b4;
+      background-color: $purple-300;
     }
 
     .purple-2 {
-      background-color: #432874;
+      background-color: $purple-100;
     }
 
     .purple-3 {
-      background-color: #36205d;
+      background-color: $purple-50;
     }
 
     .purple-4 {
-      background-color: #271b3d;
+      background-color: $header-dark-background;
     }
 
     p.section-main {
@@ -419,15 +412,15 @@
     }
 
     .pixel-horizontal {
-      color: #6133b4;
+      color: $purple-300;
     }
 
     .pixel-horizontal-2 {
-      color: #432874;
+      color: $purple-100;
     }
 
     .pixel-horizontal-3 {
-      color: #271b3d;
+      color: $header-dark-background;
     }
 
     h1, h2, h3, h4, h5, h6, button, .strike > span, input {
@@ -455,13 +448,13 @@
 
     .social-button {
       border-radius: 2px;
-      border: solid 2px #bda8ff;
+      border: solid 2px $purple-500;
       width: 100%;
       min-height: 40px;
       padding: .5em;
       background: transparent;
       margin-bottom: .5em;
-      color: #bda8ff;
+      color: $purple-500;
       transition: .5s;
 
       span {
@@ -471,8 +464,8 @@
 
     .social-button:hover {
       cursor: pointer;
-      border-color: #fff;
-      color: #fff;
+      border-color: $white;
+      color: $white;
     }
 
     .social-icon {
@@ -486,6 +479,7 @@
 
     .apple-icon {
       margin-top: -1px;
+      color: $white;
     }
 
     .strike {
@@ -531,8 +525,8 @@
     input {
       margin-bottom: 1em;
       border-radius: 2px;
-      background-color: #432874;
-      border-color: #432874;
+      background-color: $purple-100;
+      border-color: $purple-100;
       color: $purple-400;
       border: solid 2px transparent;
       transition-timing-function: ease;
@@ -544,17 +538,17 @@
     }
 
     .input-valid {
-      color: #fff;
+      color: $white;
     }
 
     input:focus {
-      border: solid 2px #9a62ff;
+      border: solid 2px $purple-400;
       color: #fff;
-      background-color: #36205d;
+      background-color: $purple-50;
     }
 
     input:hover {
-      background-color: #36205d;
+      background-color: $purple-50;
     }
 
     .sign-up {
@@ -657,7 +651,7 @@
       width: 411px;
       height: 48px;
       border-radius: 2px;
-      background-color: #9a62ff;
+      background-color: $purple-400;
       box-shadow: 0 2px 2px 0 rgba(26, 24, 29, 0.24), 0 1px 4px 0 rgba(26, 24, 29, 0.16);
       margin-bottom: 5em;
     }
@@ -674,7 +668,7 @@
       cursor: pointer;
 
       &:hover {
-        background-color: #5d3b9c;
+        background-color: $purple-50;
         box-shadow: 0 4px 4px 0 rgba(26, 24, 29, 0.16), 0 1px 8px 0 rgba(26, 24, 29, 0.12);
       }
     }
@@ -693,7 +687,7 @@
 
       .svg-icon {
         vertical-align: bottom;
-        color: #d5c8ff;
+        color: $purple-600;
         display: inline-block;
         margin-right: 1em;
       }
@@ -760,6 +754,7 @@
       height: 500px;
       width: 100%;
       opacity: .5;
+      pointer-events: none;
     }
   }
 
@@ -776,7 +771,7 @@
   }
 
   .input-error {
-    color: #fff;
+    color: $white;
     font-size: 90%;
     width: 100%;
     margin-bottom: 1em;
@@ -786,7 +781,8 @@
 <script>
 import hello from 'hellojs';
 import debounce from 'lodash/debounce';
-import isEmail from 'validator/lib/isEmail';
+import isEmail from 'validator/es/lib/isEmail';
+import { MINIMUM_PASSWORD_LENGTH } from '@/../../common/script/constants';
 import { buildAppleAuthUrl } from '../../libs/auth';
 import googlePlay from '@/assets/images/home/google-play-badge.svg';
 import iosAppStore from '@/assets/images/home/ios-app-store.svg';
@@ -797,7 +793,7 @@ import pixelHorizontal2 from '@/assets/images/home/pixel-horizontal-2.svg';
 import pixelHorizontal3 from '@/assets/images/home/pixel-horizontal-3.svg';
 import facebookSquareIcon from '@/assets/svg/facebook-square.svg';
 import googleIcon from '@/assets/svg/google.svg';
-import appleIcon from '@/assets/svg/apple.svg';
+import appleIcon from '@/assets/svg/apple_black.svg';
 import cnet from '@/assets/svg/cnet.svg';
 import fastCompany from '@/assets/svg/fast-company.svg';
 import discover from '@/assets/images/home/discover.svg';
@@ -806,7 +802,6 @@ import kickstarter from '@/assets/images/home/kickstarter.svg';
 import lifehacker from '@/assets/images/home/lifehacker.svg';
 import makeuseof from '@/assets/images/home/make-use-of.svg';
 import thenewyorktimes from '@/assets/images/home/the-new-york-times.svg';
-import { MINIMUM_PASSWORD_LENGTH } from '@/../../common/script/constants';
 
 export default {
   data () {
@@ -886,8 +881,6 @@ export default {
   },
   mounted () {
     hello.init({
-      facebook: process.env.FACEBOOK_KEY, // eslint-disable-line
-      // windows: WINDOWS_CLIENT_ID,
       google: process.env.GOOGLE_CLIENT_ID, // eslint-disable-line
     });
     this.$store.dispatch('common:setTitle', {

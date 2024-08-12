@@ -160,6 +160,7 @@ api.exportUserDataXml = {
 /**
  * @api {get} /export/avatar-:uuid.html Render a user avatar as an HTML page
  * @apiName ExportUserAvatarHtml
+ * @apiDescription This HTML export feature is not currently working (https://github.com/HabitRPG/habitica/issues/9489).
  * @apiGroup DataExport
  *
  * @apiParam (Path) {String} uuid The User ID of the user
@@ -275,7 +276,7 @@ api.exportUserAvatarPng = {
 /**
  * @api {get} /export/inbox.html Export user private messages as HTML document
  * @apiName ExportUserPrivateMessages
- * @apiDescription This HTML export feature is not currently working (https://github.com/HabitRPG/habitica/issues/9489).
+ *
  * @apiGroup DataExport
  *
  * @apiSuccess {HTML} File An html page of the user's private messages.

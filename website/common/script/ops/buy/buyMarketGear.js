@@ -14,7 +14,7 @@ import ultimateGear from '../../fns/ultimateGear';
 import { removePinnedGearAddPossibleNewOnes } from '../pinnedGearUtils';
 
 import { AbstractGoldItemOperation } from './abstractBuyOperation';
-import errorMessage from '../../libs/errorMessage';
+import { errorMessage } from '../../libs/errorMessage';
 
 export class BuyMarketGearOperation extends AbstractGoldItemOperation { // eslint-disable-line import/prefer-default-export, max-len
   multiplePurchaseAllowed () { // eslint-disable-line class-methods-use-this
@@ -28,7 +28,7 @@ export class BuyMarketGearOperation extends AbstractGoldItemOperation { // eslin
     const checkSpecialClass = item.klass === 'special' && item.specialClass && item.specialClass !== user.stats.class;
 
     // check for different class gear
-    if (checkKlass || checkSpecialClass) {
+    if ((checkKlass || checkSpecialClass) && user.items.gear.owned[item.key] !== false) {
       throw new NotAuthorized(this.i18n('cannotBuyItem'));
     }
   }

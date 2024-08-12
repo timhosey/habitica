@@ -10,34 +10,10 @@
     >
       <div class="text-center">
         <div>
-          <div class="svg-icon gryphon"></div>
-        </div>
-        <div>
           <div
-            class="svg-icon habitica-logo"
+            class="svg-icon svg habitica-logo"
             v-html="icons.habiticaIcon"
           ></div>
-        </div>
-      </div>
-      <div
-        class="form-group row text-center"
-        v-if="!registering"
-      >
-        <div class="col-12 col-md-12">
-          <div
-            class="btn btn-secondary social-button"
-            @click="socialAuth('facebook')"
-          >
-            <div
-              class="svg-icon social-icon"
-              v-html="icons.facebookIcon"
-            ></div>
-            <div
-              class="text"
-            >
-              {{ $t('loginWithSocial', {social: 'Facebook'}) }}
-            </div>
-          </div>
         </div>
       </div>
       <div class="form-group row text-center">
@@ -269,13 +245,13 @@
         <label
           v-once
           for="usernameInput"
-        >{{ $t('email') }}</label>
+        >{{ $t('emailOrUsername') }}</label>
         <input
           id="usernameInput"
           v-model="username"
           class="form-control"
           type="text"
-          :placeholder="$t('emailPlaceholder')"
+          :placeholder="$t('emailUsernamePlaceholder')"
         >
       </div>
       <div class="text-center">
@@ -296,11 +272,8 @@
     >
       <div class="text-center">
         <div>
-          <div class="svg-icon gryphon"></div>
-        </div>
-        <div>
           <div
-            class="svg-icon habitica-logo"
+            class="svg-icon habitica-logo color"
             v-html="icons.habiticaIcon"
           ></div>
         </div>
@@ -453,18 +426,18 @@
     }
 
     .gryphon {
-      background-image: url('~@/assets/images/melior@3x.png');
-      width: 63.2px;
-      height: 69.4px;
       background-size: cover;
       color: $white;
+      height: 69.4px;
       margin: 0 auto;
+      width: 63.2px;
     }
 
     .habitica-logo {
-      width: 144px;
-      height: 31px;
-      margin: 2em auto;
+      width: 175px;
+      height: 64px;
+      margin: 2em auto 0;
+      z-index: 0;
     }
 
     label {
@@ -634,14 +607,14 @@
 import axios from 'axios';
 import hello from 'hellojs';
 import debounce from 'lodash/debounce';
-import isEmail from 'validator/lib/isEmail';
+import isEmail from 'validator/es/lib/isEmail';
+import DOMPurify from 'dompurify';
+import { MINIMUM_PASSWORD_LENGTH } from '@/../../common/script/constants';
 import { buildAppleAuthUrl } from '../../libs/auth';
 
-import { MINIMUM_PASSWORD_LENGTH } from '@/../../common/script/constants';
 import exclamation from '@/assets/svg/exclamation.svg';
 import gryphon from '@/assets/svg/gryphon.svg';
-import habiticaIcon from '@/assets/svg/habitica-logo.svg';
-import facebookSquareIcon from '@/assets/svg/facebook-square.svg';
+import habiticaIcon from '@/assets/svg/logo-horizontal.svg';
 import googleIcon from '@/assets/svg/google.svg';
 import appleIcon from '@/assets/svg/apple_black.svg';
 
@@ -664,7 +637,6 @@ export default {
       exclamation,
       gryphon,
       habiticaIcon,
-      facebookIcon: facebookSquareIcon,
       googleIcon,
       appleIcon,
     });
@@ -753,9 +725,9 @@ export default {
     },
   },
   mounted () {
+    this.forgotPassword = this.$route.path.startsWith('/forgot-password');
+
     hello.init({
-      facebook: process.env.FACEBOOK_KEY, // eslint-disable-line
-      // windows: WINDOWS_CLIENT_ID,
       google: process.env.GOOGLE_CLIENT_ID, // eslint-disable-line
     });
   },
@@ -775,6 +747,11 @@ export default {
         }
       });
     }, 500),
+    sanitizeRedirect (redirect) {
+      if (!redirect) return '/';
+      const sanitizedString = DOMPurify.sanitize(redirect).replace(/\\|\/\/|\./g, '');
+      return sanitizedString;
+    },
     async register () {
       // @TODO do not use alert
       if (!this.email) {
@@ -806,19 +783,14 @@ export default {
         passwordConfirm: this.passwordConfirm,
       });
 
-      let redirectTo;
-
-      if (this.$route.query.redirectTo) {
-        redirectTo = this.$route.query.redirectTo;
-      } else {
-        redirectTo = '/';
-      }
+      const redirectTo = this.sanitizeRedirect(this.$route.query.redirectTo);
 
       // @TODO do not reload entire page
       // problem is that app.vue created hook should be called again
       // after user is logged in / just signed up
       // ALSO it's the only way to make sure language data
       // is reloaded and correct for the logged in user
+      // Same situation in login and socialAuth functions
       window.location.href = redirectTo;
     },
     async login () {
@@ -828,19 +800,8 @@ export default {
         password: this.password,
       });
 
-      let redirectTo;
+      const redirectTo = this.sanitizeRedirect(this.$route.query.redirectTo);
 
-      if (this.$route.query.redirectTo) {
-        redirectTo = this.$route.query.redirectTo;
-      } else {
-        redirectTo = '/';
-      }
-
-      // @TODO do not reload entire page
-      // problem is that app.vue created hook should be called again
-      // after user is logged in / just signed up
-      // ALSO it's the only way to make sure language data
-      // is reloaded and correct for the logged in user
       window.location.href = redirectTo;
     },
     // @TODO: Abstract hello in to action or lib
@@ -863,19 +824,8 @@ export default {
           auth,
         });
 
-        let redirectTo;
+        const redirectTo = this.sanitizeRedirect(this.$route.query.redirectTo);
 
-        if (this.$route.query.redirectTo) {
-          redirectTo = this.$route.query.redirectTo;
-        } else {
-          redirectTo = '/';
-        }
-
-        // @TODO do not reload entire page
-        // problem is that app.vue created hook should be called again
-        // after user is logged in / just signed up
-        // ALSO it's the only way to make sure language data
-        // is reloaded and correct for the logged in user
         window.location.href = redirectTo;
       }
     },

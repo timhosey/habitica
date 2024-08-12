@@ -78,6 +78,7 @@ export default {
         orderReferenceId: null,
         subscription: null,
         coupon: null,
+        sku: null,
       },
       isAmazonSetup: false,
       amazonButtonEnabled: false,
@@ -174,7 +175,10 @@ export default {
     storePaymentStatusAndReload (url) {
       let paymentType;
 
-      if (this.amazonPayments.type === 'single' && !this.amazonPayments.gift) paymentType = 'gems';
+      if (this.amazonPayments.type === 'single') {
+        if (this.amazonPayments.sku) paymentType = 'sku';
+        else if (!this.amazonPayments.gift) paymentType = 'gems';
+      }
       if (this.amazonPayments.type === 'subscription') paymentType = 'subscription';
       if (this.amazonPayments.groupId || this.amazonPayments.groupToCreate) paymentType = 'groupPlan';
       if (this.amazonPayments.type === 'single' && this.amazonPayments.gift && this.amazonPayments.giftReceiver) {
@@ -196,9 +200,9 @@ export default {
           appState.group = pick(this.amazonPayments.groupToCreate, ['_id', 'memberCount', 'name']);
         } else {
           appState.newGroup = false;
-          appState.group = pick(this.amazonPayments.group, ['_id', 'memberCount', 'name']);
+          appState.group = pick(this.amazonPayments.group, ['_id', 'memberCount', 'name', 'type']);
         }
-      } else if (paymentType.indexOf('gift-') === 0) {
+      } else if (paymentType && paymentType.indexOf('gift-') === 0) {
         appState.gift = this.amazonPayments.gift;
         appState.giftReceiver = this.amazonPayments.giftReceiver;
       } else if (paymentType === 'gems') {
@@ -223,6 +227,7 @@ export default {
         const data = {
           orderReferenceId: this.amazonPayments.orderReferenceId,
           gift: this.amazonPayments.gift,
+          sku: this.amazonPayments.sku,
         };
 
         if (this.amazonPayments.gemsBlock) {

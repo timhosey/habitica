@@ -5,15 +5,19 @@ import nconf from 'nconf';
 import { model as User } from '../models/user';
 import common from '../../common';
 import { preenUserHistory } from './preening';
-import sleep from './sleep';
+import { sleep } from './sleep';
 import { revealMysteryItems } from './payments/subscriptions';
 
 const CRON_SAFE_MODE = nconf.get('CRON_SAFE_MODE') === 'true';
 const CRON_SEMI_SAFE_MODE = nconf.get('CRON_SEMI_SAFE_MODE') === 'true';
 const { MAX_INCENTIVES } = common.constants;
-const { shouldDo } = common;
+const {
+  shouldDo,
+  i18n,
+  getPlanContext,
+  getPlanMonths,
+} = common;
 const { scoreTask } = common.ops;
-const { i18n } = common;
 const { loginIncentives } = common.content;
 // const maxPMs = 200;
 
@@ -58,13 +62,8 @@ const CLEAR_BUFFS = {
   streaks: false,
 };
 
-function grantEndOfTheMonthPerks (user, now) {
-  // multi-month subscriptions are for multiples of 3 months
-  const SUBSCRIPTION_BASIC_BLOCK_LENGTH = 3;
-  const { plan } = user.purchased;
-  const subscriptionEndDate = moment(plan.dateTerminated).isBefore() ? moment(plan.dateTerminated).startOf('month') : moment(now).startOf('month');
-  const dateUpdatedMoment = moment(plan.dateUpdated).startOf('month');
-  const elapsedMonths = moment(subscriptionEndDate).diff(dateUpdatedMoment, 'months');
+async function grantEndOfTheMonthPerks (user, now) {
+  const { plan, elapsedMonths } = getPlanContext(user, now);
 
   if (elapsedMonths > 0) {
     plan.dateUpdated = now;
@@ -72,9 +71,6 @@ function grantEndOfTheMonthPerks (user, now) {
     // Give perks based on consecutive blocks
     // If they already got perks for those blocks (eg, 6mo subscription,
     // subscription gifts, etc) - then dec the offset until it hits 0
-    _.defaults(plan.consecutive, {
-      count: 0, offset: 0, trinkets: 0, gemCapExtra: 0,
-    });
 
     // Award mystery items
     revealMysteryItems(user, elapsedMonths);
@@ -104,41 +100,23 @@ function grantEndOfTheMonthPerks (user, now) {
 
       if (plan.consecutive.offset < 0) {
         if (plan.planId) {
-          // NB gift subscriptions don't have a planID
-          // (which doesn't matter because we don't need to reapply perks
-          // for them and by this point they should have expired anyway)
-          const planIdRegExp = new RegExp('_([0-9]+)mo'); // e.g., matches 'google_6mo' / 'basic_12mo' and captures '6' / '12'
-          const match = plan.planId.match(planIdRegExp);
-          if (match !== null && match[0] !== null) {
-            // 3 for 3-month recurring subscription, etc
-            planMonthsLength = match[1]; // eslint-disable-line prefer-destructuring
-          }
+          planMonthsLength = getPlanMonths(plan);
         }
 
-        // every 3 months you get one set of perks - this variable records how many sets you need
-        let perkAmountNeeded = 0;
         if (planMonthsLength === 1) {
-          // User has a single-month recurring subscription and are due for perks
-          // IF they've been subscribed for a multiple of 3 months.
-          if (plan.consecutive.count % SUBSCRIPTION_BASIC_BLOCK_LENGTH === 0) { // every 3 months
-            perkAmountNeeded = 1;
-          }
           plan.consecutive.offset = 0; // allow the same logic to be run next month
         } else {
           // User has a multi-month recurring subscription
           // and it renewed in the previous calendar month.
-
-          // e.g., for a 6-month subscription, give two sets of perks
-          perkAmountNeeded = planMonthsLength / SUBSCRIPTION_BASIC_BLOCK_LENGTH;
           // don't need to check for perks again for this many months
           // (subtract 1 because we should have run this when the payment was taken last month)
           plan.consecutive.offset = planMonthsLength - 1;
         }
-        if (perkAmountNeeded > 0) {
-          plan.consecutive.trinkets += perkAmountNeeded; // one Hourglass every 3 months
-          plan.consecutive.gemCapExtra += 5 * perkAmountNeeded; // 5 extra Gems every 3 months
-          // cap it at 50 (hard 25 limit + extra 25)
-          if (plan.consecutive.gemCapExtra > 25) plan.consecutive.gemCapExtra = 25;
+        if (!plan.gift && plan.customerId.indexOf('Gift') === -1) {
+          // Don't process gifted subs here, since they already got their perks.
+
+          // eslint-disable-next-line no-await-in-loop
+          await plan.incrementPerkCounterAndReward(user._id, planMonthsLength);
         }
       }
     }
@@ -279,7 +257,7 @@ function awardLoginIncentives (user) {
 }
 
 // Perform various beginning-of-day reset actions.
-export function cron (options = {}) {
+export async function cron (options = {}) {
   const {
     user, tasksByType, analytics, now = new Date(), daysMissed, timezoneUtcOffsetFromUserPrefs,
   } = options;
@@ -304,7 +282,9 @@ export function cron (options = {}) {
   }
 
   if (user.isSubscribed()) {
-    grantEndOfTheMonthPerks(user, now);
+    await grantEndOfTheMonthPerks(user, now);
+  } if (!user.isSubscribed() && user.purchased.plan.perkMonthCount > 0) {
+    user.purchased.plan.perkMonthCount = 0;
   }
 
   const { plan } = user.purchased;
@@ -351,17 +331,18 @@ export function cron (options = {}) {
   if (!user.party.quest.progress.down) user.party.quest.progress.down = 0;
 
   tasksByType.dailys.forEach(task => {
+    const isTeamBoardTask = task.group.id && !task.userId;
     if (
-      task.group.assignedDate
+      !isTeamBoardTask && task.group.assignedDate
       && moment(task.group.assignedDate).isAfter(user.auth.timestamps.updated)
     ) return;
     const { completed } = task;
     // Deduct points for missed Daily tasks
-    let EvadeTask = 0;
+    let evadeTask = 0;
     let scheduleMisses = daysMissed;
 
     if (completed) {
-      dailyChecked += 1;
+      if (!isTeamBoardTask) dailyChecked += 1;
       if (!atLeastOneDailyDue) { // only bother checking until the first thing is found
         const thatDay = moment(now).subtract({ days: daysMissed });
         atLeastOneDailyDue = shouldDo(thatDay.toDate(), task, user.preferences);
@@ -376,15 +357,15 @@ export function cron (options = {}) {
         if (shouldDo(thatDay.toDate(), task, user.preferences)) {
           atLeastOneDailyDue = true;
           scheduleMisses += 1;
-          if (user.stats.buffs.stealth) {
+          if (user.stats.buffs.stealth && !isTeamBoardTask) {
             user.stats.buffs.stealth -= 1;
-            EvadeTask += 1;
+            evadeTask += 1;
           }
         }
         if (multiDaysCountAsOneDay) break;
       }
 
-      if (scheduleMisses > EvadeTask) {
+      if (scheduleMisses > evadeTask) {
         // The user did not complete this due Daily
         // (but no penalty if cron is running in safe mode).
         if (CRON_SAFE_MODE) {
@@ -410,7 +391,7 @@ export function cron (options = {}) {
               user,
               task,
               direction: 'down',
-              times: multiDaysCountAsOneDay ? 1 : scheduleMisses - EvadeTask,
+              times: multiDaysCountAsOneDay ? 1 : scheduleMisses - evadeTask,
               cron: true,
             });
 
@@ -445,13 +426,6 @@ export function cron (options = {}) {
         task.checklist.forEach(i => { i.completed = false; });
       }
     }
-
-    if (task.group && task.group.approval && task.group.approval.approved) {
-      task.group.approval.approved = false;
-      task.group.approval.dateApproved = null;
-      task.group.approval.requested = false;
-      task.group.approval.requestedDate = null;
-    }
   });
 
   resetHabitCounters(user, tasksByType, now, daysMissed);
@@ -461,12 +435,6 @@ export function cron (options = {}) {
     // move singleton Habits towards yellow.
     if (task.up === false || task.down === false) {
       task.value = Math.abs(task.value) < 0.1 ? 0 : task.value /= 2;
-    }
-    if (task.group && task.group.approval && task.group.approval.approved) {
-      task.group.approval.approved = false;
-      task.group.approval.dateApproved = null;
-      task.group.approval.requested = false;
-      task.group.approval.requestedDate = null;
     }
   });
 
@@ -529,6 +497,10 @@ export function cron (options = {}) {
     const { progress } = user.party.quest;
     _progress = progress.toObject(); // clone the old progress object
     _.merge(progress, { down: 0, up: 0, collectedItems: 0 });
+  }
+
+  if (user.pinnedItems && user.pinnedItems.length > 0) {
+    user.pinnedItems = common.cleanupPinnedItems(user);
   }
 
   // Send notification for changes in HP and MP.

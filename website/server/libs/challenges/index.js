@@ -8,6 +8,7 @@ import {
   TAVERN_ID,
 } from '../../models/group';
 import {
+  BadRequest,
   NotFound,
   NotAuthorized,
 } from '../errors';
@@ -41,6 +42,9 @@ export async function createChallenge (user, req, res) {
   });
   if (!group) throw new NotFound(res.t('groupNotFound'));
   if (!group.isMember(user)) throw new NotAuthorized(res.t('mustBeGroupMember'));
+  if (group.type === 'guild' && group._id !== TAVERN_ID && !group.hasActiveGroupPlan()) {
+    throw new BadRequest(res.t('featureRetired'));
+  }
 
   if (group.leaderOnly && group.leaderOnly.challenges && group.leader !== user._id) {
     throw new NotAuthorized(res.t('onlyGroupLeaderChal'));
@@ -49,6 +53,27 @@ export async function createChallenge (user, req, res) {
   if (group._id === TAVERN_ID && prize < 1) {
     throw new NotAuthorized(res.t('tavChalsMinPrize'));
   }
+
+  group.challengeCount += 1;
+
+  if (!req.body.summary) {
+    req.body.summary = req.body.name;
+  }
+  req.body.leader = user._id;
+  req.body.official = !!(user.hasPermission('challengeAdmin') && req.body.official);
+  const categories = req.body.categories || [];
+  categories.forEach(category => {
+    if (category.slug === 'habitica_official' && !user.hasPermission('challengeAdmin')) {
+      throw new NotAuthorized(res.t('noPrivAccess'));
+    } else if (category.slug === 'habitica_official' && user.hasPermission('challengeAdmin')) {
+      req.body.official = true;
+    }
+  });
+  const challenge = new Challenge(Challenge.sanitize(req.body));
+
+  // First validate challenge so we don't save group if it's invalid (only runs sync validators)
+  const challengeValidationErrors = challenge.validateSync();
+  if (challengeValidationErrors) throw challengeValidationErrors;
 
   if (prize > 0) {
     const groupBalance = group.balance && group.leader === user._id ? group.balance : 0;
@@ -61,29 +86,23 @@ export async function createChallenge (user, req, res) {
     if (groupBalance >= prizeCost) {
       // Group pays for all of prize
       group.balance -= prizeCost;
+
+      await user.updateBalance(0, 'create_bank_challenge', challenge._id, challenge.name);
     } else if (groupBalance > 0) {
       // User pays remainder of prize cost after group
       const remainder = prizeCost - group.balance;
       group.balance = 0;
-      user.balance -= remainder;
+      await user.updateBalance(-remainder, 'create_challenge', challenge._id, challenge.name);
     } else {
       // User pays for all of prize
-      user.balance -= prizeCost;
+      await user.updateBalance(-prizeCost, 'create_challenge', challenge._id, challenge.name);
     }
   }
 
-  group.challengeCount += 1;
-
-  if (!req.body.summary) {
-    req.body.summary = req.body.name;
+  if (challenge.flagCount > 0) {
+    challenge.flagCount = 0;
+    challenge.flags = {};
   }
-  req.body.leader = user._id;
-  req.body.official = !!(user.contributor.admin && req.body.official);
-  const challenge = new Challenge(Challenge.sanitize(req.body));
-
-  // First validate challenge so we don't save group if it's invalid (only runs sync validators)
-  const challengeValidationErrors = challenge.validateSync();
-  if (challengeValidationErrors) throw challengeValidationErrors;
 
   const results = await Promise.all([challenge.save({
     validateBeforeSave: false, // already validated

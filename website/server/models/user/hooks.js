@@ -24,7 +24,7 @@ schema.plugin(baseModel, {
   // noSet is not used as updating uses a whitelist and creating only accepts
   // specific params (password, email, username, ...)
   noSet: [],
-  private: ['auth.local.hashed_password', 'auth.local.passwordHashMethod', 'auth.local.salt', '_cronSignature', '_ABtests', 'secret'],
+  private: ['auth.local.hashed_password', 'auth.local.passwordHashMethod', 'auth.local.salt', '_cronSignature', '_ABtests', 'secret', 'profile.flags'],
   toJSONTransform: function userToJSON (plainObj, originalDoc) {
     plainObj._tmp = originalDoc._tmp; // be sure to send down drop notifs
 
@@ -36,6 +36,12 @@ schema.plugin(baseModel, {
 
     if (plainObj.flags && originalDoc.isSelected('flags.lastNewStuffRead')) {
       plainObj.flags.newStuff = originalDoc.checkNewStuff();
+    }
+
+    if (plainObj.auth && plainObj.auth.local && originalDoc.auth.local.hashed_password) {
+      plainObj.auth.local.has_password = true;
+    } else if (plainObj.auth && plainObj.auth.local && originalDoc.auth.local.email) {
+      plainObj.auth.local.has_password = false;
     }
 
     return plainObj;
@@ -144,10 +150,22 @@ function _setUpNewUser (user) {
   user.items.quests.dustbunnies = 1;
   user.purchased.background.violet = true;
   user.preferences.background = 'violet';
-  if (moment().isBefore('2021-11-28T20:00-05:00')) {
-    user.migration = '20211124_harvest_feast';
-    user.items.pets['Turkey-Base'] = 5;
-    user.items.currentPet = 'Turkey-Base';
+  if (moment().isBefore('2023-03-15T12:00-05:00')) {
+    user.migration = '20230314_pi_day';
+    user.items.gear.owned.head_special_piDay = true;
+    user.items.gear.equipped.head = 'head_special_piDay';
+    user.items.gear.owned.shield_special_piDay = true;
+    user.items.gear.equipped.shield = 'shield_special_piDay';
+    user.items.food.Pie_Skeleton = 1;
+    user.items.food.Pie_Base = 1;
+    user.items.food.Pie_CottonCandyBlue = 1;
+    user.items.food.Pie_CottonCandyPink = 1;
+    user.items.food.Pie_Shade = 1;
+    user.items.food.Pie_White = 1;
+    user.items.food.Pie_Golden = 1;
+    user.items.food.Pie_Zombie = 1;
+    user.items.food.Pie_Desert = 1;
+    user.items.food.Pie_Red = 1;
   }
 
   user.markModified('items achievements');
@@ -229,7 +247,7 @@ schema.pre('save', true, function preSaveUser (next, done) {
   // use the default values defined in the user schema and not the real ones.
   //
   // To check if a field was selected Document.isDirectSelected('field') can be used.
-  // more info on its usage can be found at http://mongoosejs.com/docs/api.html#document_Document-isDirectSelected
+  // more info on its usage can be found at https://mongoosejs.com/docs/api.html#document_Document-isDirectSelected
 
   // do not calculate achievements if items or achievements are not selected
   if (this.isDirectSelected('items') && this.isDirectSelected('achievements')) {
@@ -241,7 +259,13 @@ schema.pre('save', true, function preSaveUser (next, done) {
       && this.achievements.beastMaster !== true
     ) {
       this.achievements.beastMaster = true;
-      this.addNotification('ACHIEVEMENT_BEAST_MASTER');
+      this.addNotification(
+        'ACHIEVEMENT_STABLE',
+        {
+          achievement: 'beastMaster',
+          achievementNotification: 'beastAchievement',
+        },
+      );
     }
 
     // Determines if Mount Master should be awarded
@@ -252,7 +276,13 @@ schema.pre('save', true, function preSaveUser (next, done) {
       && this.achievements.mountMaster !== true
     ) {
       this.achievements.mountMaster = true;
-      this.addNotification('ACHIEVEMENT_MOUNT_MASTER');
+      this.addNotification(
+        'ACHIEVEMENT_STABLE',
+        {
+          achievement: 'mountMaster',
+          achievementNotification: 'mountAchievement',
+        },
+      );
     }
 
     // Determines if Triad Bingo should be awarded
@@ -264,7 +294,13 @@ schema.pre('save', true, function preSaveUser (next, done) {
       && this.achievements.triadBingo !== true
     ) {
       this.achievements.triadBingo = true;
-      this.addNotification('ACHIEVEMENT_TRIAD_BINGO');
+      this.addNotification(
+        'ACHIEVEMENT_STABLE',
+        {
+          achievement: 'triadBingo',
+          achievementNotification: 'triadBingoAchievement',
+        },
+      );
     }
 
     // EXAMPLE CODE for allowing all existing and new players to be
@@ -326,6 +362,8 @@ schema.pre('save', true, function preSaveUser (next, done) {
     }
   }
 
+  // Enforce min/max values without displaying schema errors to end user
+
   if (this.isDirectSelected('preferences')) {
     if (
       _.isNaN(this.preferences.dayStart)
@@ -333,6 +371,20 @@ schema.pre('save', true, function preSaveUser (next, done) {
       || this.preferences.dayStart > 23
     ) {
       this.preferences.dayStart = 0;
+    }
+  }
+
+  if (this.isSelected('stats')) {
+    const statMaximum = common.constants.MAX_FIELD_HARD_CAP;
+    const levelMaximum = common.constants.MAX_LEVEL_HARD_CAP;
+
+    _.each(['hp', 'mp', 'exp', 'gp'], stat => {
+      if (this.stats[stat] > statMaximum) {
+        this.stats[stat] = statMaximum;
+      }
+    });
+    if (this.stats.lvl > levelMaximum) {
+      this.stats.lvl = levelMaximum;
     }
   }
 
@@ -352,8 +404,11 @@ schema.pre('save', true, function preSaveUser (next, done) {
   }
 });
 
-schema.pre('update', function preUpdateUser () {
-  this.update({}, { $inc: { _v: 1 } });
+schema.pre('updateOne', function preUpdateUser () {
+  this.updateOne({}, { $inc: { _v: 1 } });
+});
+schema.pre('updateMany', function preUpdateUser () {
+  this.updateMany({}, { $inc: { _v: 1 } });
 });
 
 schema.post('save', function postSaveUser () {

@@ -47,6 +47,16 @@ const SEASONAL_SETS = {
     'winter2022StockingWarriorSet',
     'winter2022PomegranateMageSet',
     'winter2022IceCrystalHealerSet',
+
+    'winter2023RibbonRogueSet',
+    'winter2023WalrusWarriorSet',
+    'winter2023FairyLightsMageSet',
+    'winter2023CardinalHealerSet',
+
+    'winter2024SnowyOwlRogueSet',
+    'winter2024PeppermintBarkWarriorSet',
+    'winter2024NarwhalWizardMageSet',
+    'winter2024FrozenHealerSet',
   ],
   spring: [
     // spring 2014
@@ -67,36 +77,47 @@ const SEASONAL_SETS = {
     'cleverDogSet',
     'braveMouseSet',
 
-    // spring 2017
     'spring2017FelineWarriorSet',
     'spring2017CanineConjurorSet',
     'spring2017FloralMouseSet',
     'spring2017SneakyBunnySet',
 
-    // spring 2018
     'spring2018TulipMageSet',
     'spring2018SunriseWarriorSet',
     'spring2018DucklingRogueSet',
     'spring2018GarnetHealerSet',
 
-    // spring 2019
     'spring2019AmberMageSet',
     'spring2019OrchidWarriorSet',
     'spring2019CloudRogueSet',
     'spring2019RobinHealerSet',
 
-    // spring 2020
     'spring2020BeetleWarriorSet',
     'spring2020IrisHealerSet',
     'spring2020LapisLazuliRogueSet',
     'spring2020PuddleMageSet',
 
-    // spring 2021
     'spring2021SwanMageSet',
     'spring2021WillowHealerSet',
     'spring2021SunstoneWarriorSet',
     'spring2021TwinFlowerRogueSet',
+
+    'spring2022ForsythiaMageSet',
+    'spring2022PeridotHealerSet',
+    'spring2022RainstormWarriorSet',
+    'spring2022MagpieRogueSet',
+
+    'spring2023CaterpillarRogueSet',
+    'spring2023HummingbirdWarriorSet',
+    'spring2023MoonstoneMageSet',
+    'spring2023LilyHealerSet',
+
+    'spring2024FluoriteWarriorSet',
+    'spring2024HibiscusMageSet',
+    'spring2024BluebirdHealerSet',
+    'spring2024MeltingSnowRogueSet',
   ],
+
   summer: [
     // summer 2014
     'daringSwashbucklerSet',
@@ -139,6 +160,21 @@ const SEASONAL_SETS = {
     'summer2021ClownfishRogueSet',
     'summer2021FlyingFishWarriorSet',
     'summer2021NautilusMageSet',
+
+    'summer2022CrabRogueSet',
+    'summer2022WaterspoutWarriorSet',
+    'summer2022MantaRayMageSet',
+    'summer2022AngelfishHealerSet',
+
+    'summer2023GoldfishWarriorSet',
+    'summer2023CoralMageSet',
+    'summer2023GuppyRogueSet',
+    'summer2023KelpHealerSet',
+
+    'summer2024WhaleSharkWarriorSet',
+    'summer2024SeaAnemoneMageSet',
+    'summer2024SeaSnailHealerSet',
+    'summer2024NudibranchRogueSet',
   ],
   fall: [
     // fall 2014
@@ -182,6 +218,16 @@ const SEASONAL_SETS = {
     'fall2021HeadlessWarriorSet',
     'fall2021BrainEaterMageSet',
     'fall2021FlameSummonerHealerSet',
+
+    'fall2022KappaRogueSet',
+    'fall2022OrcWarriorSet',
+    'fall2022HarpyMageSet',
+    'fall2022WatcherHealerSet',
+
+    'fall2023WitchsBrewRogueSet',
+    'fall2023BogCreatureHealerSet',
+    'fall2023ScaryMovieWarriorSet',
+    'fall2023ScarletWarlockMageSet',
   ],
 };
 

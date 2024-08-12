@@ -1,7 +1,7 @@
 import Vue from 'vue';
 
-import notifications from './notifications';
 import scoreTask from '@/../../common/script/ops/scoreTask';
+import notifications from './notifications';
 import { mapState } from '@/libs/store';
 import * as Analytics from '@/libs/analytics';
 import { CONSTANTS, getLocalSetting, setLocalSetting } from '@/libs/userlocalManager';
@@ -15,24 +15,8 @@ export default {
     }),
   },
   methods: {
-    async beforeTaskScore (task) {
-      const { user } = this;
-      if (this.castingSpell) return false;
-
-      if (task.group.approval.required && !task.group.approval.approved) {
-        task.group.approval.requested = true;
-        const { data: groupPlans } = await this.$store.dispatch('guilds:getGroupPlans');
-        const groupPlan = groupPlans.find(g => g.id === task.group.id);
-        if (groupPlan) {
-          const managers = Object.keys(groupPlan.managers);
-          managers.push(groupPlan.leader);
-          if (managers.indexOf(user._id) !== -1) {
-            task.group.approval.approved = true;
-          }
-        }
-      }
-
-      return true;
+    async beforeTaskScore () {
+      return (!this.castingSpell);
     },
     playTaskScoreSound (task, direction) {
       switch (task.type) { // eslint-disable-line default-case

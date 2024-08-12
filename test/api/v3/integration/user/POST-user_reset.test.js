@@ -88,7 +88,7 @@ describe('POST /user/reset', () => {
   });
 
   it('does not delete challenge or group tasks', async () => {
-    const guild = await generateGroup(user);
+    const guild = await generateGroup(user, {}, { 'purchased.plan.customerId': 'group-unlimited' });
     const challenge = await generateChallenge(user, guild);
     await user.post(`/challenges/${challenge._id}/join`);
     await user.post(`/tasks/challenge/${challenge._id}`, {
@@ -100,11 +100,14 @@ describe('POST /user/reset', () => {
       text: 'todo group',
       type: 'todo',
     });
-    await user.post(`/tasks/${groupTask._id}/assign/${user._id}`);
+    await user.post(`/tasks/${groupTask._id}/assign`, [user._id]);
 
     await user.post('/user/reset');
     await user.sync();
 
+    await user.put('/user', {
+      'preferences.tasks.mirrorGroupTasks': [guild._id],
+    });
     const memberTasks = await user.get('/tasks/user');
 
     const syncedGroupTask = find(memberTasks, memberTask => memberTask.group.id === guild._id);
@@ -120,7 +123,7 @@ describe('POST /user/reset', () => {
 
   it('does not delete secret', async () => {
     const admin = await generateUser({
-      contributor: { admin: true },
+      permissions: { userSupport: true },
     });
 
     const hero = await generateUser({

@@ -35,7 +35,7 @@ describe('PUT /user', () => {
       })).to.eventually.be.rejected.and.eql({
         code: 400,
         error: 'BadRequest',
-        message: 'mustBeArray',
+        message: 'Tag list must be an array.',
       });
     });
 
@@ -95,14 +95,6 @@ describe('PUT /user', () => {
       });
 
       await expect(user.put('/user', {
-        'profile.name': 'TESTPLACEHOLDERSWEARWORDHERE',
-      })).to.eventually.be.rejected.and.eql({
-        code: 400,
-        error: 'BadRequest',
-        message: t('bannedWordUsedInProfile'),
-      });
-
-      await expect(user.put('/user', {
         'profile.name': 'namecontainsnewline\n',
       })).to.eventually.be.rejected.and.eql({
         code: 400,
@@ -116,7 +108,7 @@ describe('PUT /user', () => {
         _id: '1234', publishDate: new Date(), title: 'Title', published: true,
       });
 
-      await user.update({
+      await user.updateOne({
         'flags.lastNewStuffRead': '123',
       });
 
@@ -135,6 +127,7 @@ describe('PUT /user', () => {
       'gem balance': { balance: 100 },
       auth: { 'auth.blocked': true, 'auth.timestamps.created': new Date() },
       contributor: { 'contributor.level': 9, 'contributor.admin': true, 'contributor.text': 'some text' },
+      permissions: { 'permissions.fullAccess': true, 'permissions.news': true, 'permissions.moderator': 'some text' },
       backer: { 'backer.tier': 10, 'backer.npc': 'Bilbo' },
       subscriptions: { 'purchased.plan.extraMonths': 500, 'purchased.plan.consecutive.trinkets': 1000 },
       'customization gem purchases': { 'purchased.background.tavern': true, 'purchased.skin.bear': true },
@@ -197,7 +190,7 @@ describe('PUT /user', () => {
       it(`updates user with ${type} that is a default`, async () => {
         const dbUpdate = {};
         dbUpdate[`purchased.${type}.${item}`] = true;
-        await user.update(dbUpdate);
+        await user.updateOne(dbUpdate);
 
         // Sanity checks to make sure user is not already equipped with item
         expect(get(user.preferences, type)).to.not.eql(item);
@@ -219,7 +212,7 @@ describe('PUT /user', () => {
     });
 
     it('can set beard to default', async () => {
-      await user.update({
+      await user.updateOne({
         'purchased.hair.beard': 3,
         'preferences.hair.beard': 3,
       });
@@ -232,7 +225,7 @@ describe('PUT /user', () => {
     });
 
     it('can set mustache to default', async () => {
-      await user.update({
+      await user.updateOne({
         'purchased.hair.mustache': 2,
         'preferences.hair.mustache': 2,
       });
@@ -271,7 +264,7 @@ describe('PUT /user', () => {
       it(`updates user with ${type} user does own`, async () => {
         const dbUpdate = {};
         dbUpdate[`purchased.${type}.${item}`] = true;
-        await user.update(dbUpdate);
+        await user.updateOne(dbUpdate);
 
         // Sanity check to make sure user is not already equipped with item
         expect(get(user.preferences, type)).to.not.eql(item);
@@ -280,6 +273,14 @@ describe('PUT /user', () => {
 
         expect(get(updatedUser.preferences, type)).to.eql(item);
       });
+    });
+
+    it('updates user when background is unequipped', async () => {
+      expect(get(user.preferences, 'background')).to.not.eql('');
+
+      const updatedUser = await user.put('/user', { 'preferences.background': '' });
+
+      expect(get(updatedUser.preferences, 'background')).to.eql('');
     });
   });
 

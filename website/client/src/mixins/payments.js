@@ -7,9 +7,8 @@ import encodeParams from '@/libs/encodeParams';
 import notificationsMixin from '@/mixins/notifications';
 import { CONSTANTS, setLocalSetting } from '@/libs/userlocalManager';
 
-const { STRIPE_PUB_KEY } = process.env;
+const STRIPE_PUB_KEY = process.env.STRIPE_PUB_KEY;
 
-// const habiticaUrl = `${window.location.protocol}//${window.location.host}`;
 let stripeInstance = null;
 
 export default {
@@ -39,6 +38,13 @@ export default {
       return moment(this.user.purchased.plan.dateTerminated)
         .format(this.user.preferences.dateFormat.toUpperCase());
     },
+    renewalDate () {
+      const renewalDate = moment().add(1, 'months');
+      if (!this.user.preferences || !this.user.preferences.dateFormat) {
+        return renewalDate;
+      }
+      return renewalDate.format(this.user.preferences.dateFormat.toUpperCase());
+    },
   },
   methods: {
     encodeGift (uuid, gift) {
@@ -63,6 +69,7 @@ export default {
         type,
         giftData,
         gemsBlock,
+        sku,
       } = data;
       let { url } = data;
 
@@ -84,6 +91,11 @@ export default {
       if (type === 'gems') {
         appState.gemsBlock = gemsBlock;
         url += `?gemsBlock=${gemsBlock.key}`;
+      }
+
+      if (type === 'sku') {
+        appState.sku = sku;
+        url += `?sku=${sku}`;
       }
 
       setLocalSetting(CONSTANTS.savedAppStateValues.SAVED_APP_STATE, JSON.stringify(appState));
@@ -122,6 +134,7 @@ export default {
       if (data.group || data.groupToCreate) paymentType = 'groupPlan';
       if (data.gift && data.gift.type === 'gems') paymentType = 'gift-gems';
       if (data.gift && data.gift.type === 'subscription') paymentType = 'gift-subscription';
+      if (data.sku) paymentType = 'sku';
 
       let url = '/stripe/checkout-session';
       const postData = {};
@@ -140,6 +153,8 @@ export default {
       if (data.subscription) postData.sub = sub.key;
       if (data.coupon) postData.coupon = data.coupon;
       if (data.groupId) postData.groupId = data.groupId;
+      if (data.demographics) postData.demographics = data.demographics;
+      if (data.sku) postData.sku = data.sku;
 
       const response = await axios.post(url, postData);
 
@@ -242,6 +257,7 @@ export default {
 
       if (data.type === 'single') {
         this.amazonPayments.gemsBlock = data.gemsBlock;
+        this.amazonPayments.sku = data.sku;
       }
 
       if (data.gift) {
@@ -265,6 +281,10 @@ export default {
 
       if (data.groupToCreate) { // creating a group
         this.amazonPayments.groupToCreate = data.groupToCreate;
+      }
+
+      if (data.demographics) { // sending demographics
+        this.amazonPayments.demographics = data.demographics;
       }
 
       this.amazonPayments.gift = data.gift;

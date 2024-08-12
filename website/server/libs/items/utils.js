@@ -22,37 +22,49 @@ export function getDefaultOwnedGear () {
 // Example of an item path: `items.gear.owned.head_warrior_0`
 export function validateItemPath (itemPath) {
   // The item path must start with `items.`
-  if (itemPath.indexOf('items.') !== 0) return false;
-  if (User.schema.paths[itemPath]) return true;
+  if (itemPath.indexOf('items.') === 0) {
+    if (User.schema.paths[itemPath]) return true;
 
-  const key = last(itemPath.split('.'));
+    const key = last(itemPath.split('.'));
 
-  if (itemPath.indexOf('items.gear.owned') === 0) {
-    return Boolean(shared.content.gear.flat[key]);
+    if (itemPath.indexOf('items.gear.owned') === 0) {
+      return Boolean(shared.content.gear.flat[key]);
+    }
+
+    if (itemPath.indexOf('items.pets') === 0) {
+      return Boolean(shared.content.petInfo[key]);
+    }
+
+    if (itemPath.indexOf('items.eggs') === 0) {
+      return Boolean(shared.content.eggs[key]);
+    }
+
+    if (itemPath.indexOf('items.hatchingPotions') === 0) {
+      return Boolean(shared.content.hatchingPotions[key]);
+    }
+
+    if (itemPath.indexOf('items.food') === 0) {
+      return Boolean(shared.content.food[key]);
+    }
+
+    if (itemPath.indexOf('items.mounts') === 0) {
+      return Boolean(shared.content.mountInfo[key]);
+    }
+
+    if (itemPath.indexOf('items.quests') === 0) {
+      return Boolean(shared.content.quests[key]);
+    }
   }
 
-  if (itemPath.indexOf('items.pets') === 0) {
-    return Boolean(shared.content.petInfo[key]);
-  }
+  if (itemPath.indexOf('purchased.') === 0) {
+    const parts = itemPath.split('.');
+    const key = last(parts);
+    const type = parts[parts.length - 2];
 
-  if (itemPath.indexOf('items.eggs') === 0) {
-    return Boolean(shared.content.eggs[key]);
-  }
-
-  if (itemPath.indexOf('items.hatchingPotions') === 0) {
-    return Boolean(shared.content.hatchingPotions[key]);
-  }
-
-  if (itemPath.indexOf('items.food') === 0) {
-    return Boolean(shared.content.food[key]);
-  }
-
-  if (itemPath.indexOf('items.mounts') === 0) {
-    return Boolean(shared.content.mountInfo[key]);
-  }
-
-  if (itemPath.indexOf('items.quests') === 0) {
-    return Boolean(shared.content.quests[key]);
+    if (itemPath.indexOf('hair.') === 10) {
+      return Boolean(shared.content.appearances.hair[type][key]);
+    }
+    return Boolean(shared.content.appearances[type][key]);
   }
 
   return false;
@@ -60,7 +72,7 @@ export function validateItemPath (itemPath) {
 
 // When passed a value of an item in the user object it'll convert the
 // value to the correct format.
-// Example a numeric string like "5" applied to a food item (expecting an interger)
+// Example a numeric string like "5" applied to a food item (expecting an integer)
 // will be converted to the number 5
 export function castItemVal (itemPath, itemVal) {
   if (
@@ -73,13 +85,21 @@ export function castItemVal (itemPath, itemVal) {
     return Number(itemVal);
   }
 
-  if (
-    itemPath.indexOf('items.mounts') === 0
-    || itemPath.indexOf('items.gear.owned') === 0
-  ) {
-    if (itemVal === 'true') return true;
-    if (itemVal === 'false') return false;
+  if (itemPath.indexOf('items.mounts') === 0) {
+    // Mounts are true when you own them and null when you have used Keys to the Kennel
+    // to release them.
+    // Empty string or undefined means "unset" i.e. never owned.
+    if (['', 'undefined'].includes(itemVal)) return undefined;
+    if (itemVal === 'null' || itemVal === 'false') return null;
+    if (itemVal) return true; // any truthy value
+    return null; // any false value
+  }
 
+  if (itemPath.indexOf('items.gear.owned') === 0) {
+    // Gear is true when you own it and false if you previously owned it but lost it (e.g., Death)
+    // Null, empty string, or undefined are taken to mean "unset" i.e. never owned.
+    if (['null', '', 'undefined'].includes(itemVal)) return undefined;
+    if (itemVal === 'false') return false;
     return Boolean(itemVal);
   }
 
